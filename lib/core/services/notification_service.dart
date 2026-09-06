@@ -1,0 +1,115 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+class NotificationService {
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  bool _isInitialized = false;
+
+  Future<void> init() async {
+    if (_isInitialized) return;
+
+    try {
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      const DarwinInitializationSettings iosSettings =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+
+      const LinuxInitializationSettings linuxSettings =
+          LinuxInitializationSettings(defaultActionName: 'Open notification');
+
+      const InitializationSettings settings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+        linux: linuxSettings,
+      );
+
+      await _notificationsPlugin.initialize(
+        settings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          debugPrint('Notification clicked: ${response.payload}');
+        },
+      );
+
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('NotificationService init error: $e');
+    }
+  }
+
+  Future<void> showBudgetAlert({
+    required int id,
+    required String categoryName,
+    required double percentage,
+    required String spentFormatted,
+    required String limitFormatted,
+  }) async {
+    try {
+      final isExceeded = percentage >= 1.0;
+      final title = isExceeded
+          ? '🚨 Budget Alert: $categoryName Exceeded!'
+          : '⚠️ Budget Warning: $categoryName';
+
+      final body = isExceeded
+          ? 'You have spent $spentFormatted of your $limitFormatted budget (${(percentage * 100).toInt()}%).'
+          : 'You have reached ${(percentage * 100).toInt()}% ($spentFormatted / $limitFormatted) of your $categoryName budget.';
+
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'budget_alerts',
+        'Budget Alerts',
+        channelDescription: 'Alerts when your spending reaches budget limits',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details =
+          NotificationDetails(android: androidDetails);
+
+      await _notificationsPlugin.show(id, title, body, details);
+    } catch (e) {
+      debugPrint('Error showing budget alert: $e');
+    }
+  }
+
+  Future<void> showRecurringBillReminder({
+    required int id,
+    required String note,
+    required String amountFormatted,
+    required DateTime date,
+  }) async {
+    try {
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'bill_reminders',
+        'Bill Reminders',
+        channelDescription: 'Reminders for upcoming bills and recurring payments',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details =
+          NotificationDetails(android: androidDetails);
+
+      await _notificationsPlugin.show(
+        id,
+        '⏰ Upcoming Bill: $note',
+        'Your recurring payment of $amountFormatted is scheduled for today.',
+        details,
+      );
+    } catch (e) {
+      debugPrint('Error showing bill reminder: $e');
+    }
+  }
+}
+
