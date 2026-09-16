@@ -10,6 +10,7 @@ import '../../features/quick_add/presentation/quick_add_sheet.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/subscriptions/presentation/subscriptions_screen.dart';
 import '../../features/transactions/presentation/transactions_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -115,6 +116,11 @@ final GoRouter appRouter = GoRouter(
       path: '/accounts',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const AccountsScreen(),
+    ),
+    GoRoute(
+      path: '/subscriptions',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SubscriptionsScreen(),
     ),
     GoRoute(
       path: '/add-transaction',

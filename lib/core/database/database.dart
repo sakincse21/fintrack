@@ -59,6 +59,7 @@ class RecurringRules extends Table {
   DateTimeColumn get nextRunDate => dateTime()();
   DateTimeColumn get endDate => dateTime().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isSubscription => boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('Budget')
@@ -92,6 +93,24 @@ class MerchantRules extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get keyword => text().unique()();
   IntColumn get categoryId => integer().references(Categories, #id)();
+}
+
+@DataClassName('StreakStateData')
+class StreakStates extends Table {
+  IntColumn get id => integer().autoIncrement()(); // singleton row id = 1
+  IntColumn get currentStreak => integer().withDefault(const Constant(0))();
+  IntColumn get longestStreak => integer().withDefault(const Constant(0))();
+  TextColumn get lastLoggedDate => text().nullable()(); // 'YYYY-MM-DD'
+  IntColumn get graceMissesUsed => integer().withDefault(const Constant(0))();
+  TextColumn get graceMissesMonth => text().nullable()(); // 'YYYY-MM'
+  IntColumn get freezeAvailable => integer().withDefault(const Constant(2))();
+}
+
+@DataClassName('MilestoneAchieved')
+class MilestonesAchieved extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get milestoneKey => text().unique()();
+  TextColumn get achievedAt => text()(); // ISO timestamp
 }
 
 // Joined transaction model for easy UI consumption
@@ -149,13 +168,15 @@ class CategoryWithCount {
   Goals,
   Tags,
   MerchantRules,
+  StreakStates,
+  MilestonesAchieved,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'fintrack_db');
@@ -167,6 +188,13 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await seedDefaultData();
         },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(streakStates);
+            await m.createTable(milestonesAchieved);
+            await m.addColumn(recurringRules, recurringRules.isSubscription);
+          }
+        },
         beforeOpen: (details) async {
           // Create high-performance indices for sub-millisecond filtering and reports
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date, deleted_at);');
@@ -175,6 +203,13 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id, deleted_at);');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type, deleted_at);');
           await customStatement('PRAGMA foreign_keys = ON;');
+
+          // Fallback schema safety
+          await customStatement('CREATE TABLE IF NOT EXISTS streak_states (id INTEGER PRIMARY KEY AUTOINCREMENT, current_streak INTEGER NOT NULL DEFAULT 0, longest_streak INTEGER NOT NULL DEFAULT 0, last_logged_date TEXT, grace_misses_used INTEGER NOT NULL DEFAULT 0, grace_misses_month TEXT, freeze_available INTEGER NOT NULL DEFAULT 2);');
+          await customStatement('CREATE TABLE IF NOT EXISTS milestones_achieved (id INTEGER PRIMARY KEY AUTOINCREMENT, milestone_key TEXT NOT NULL UNIQUE, achieved_at TEXT NOT NULL);');
+          try {
+            await customStatement('ALTER TABLE recurring_rules ADD COLUMN is_subscription INTEGER NOT NULL DEFAULT 0;');
+          } catch (_) {}
         },
       );
 
@@ -328,6 +363,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<TransactionWithDetails>> getTransactionsForDateRange(
     DateTime start,
     DateTime end, {
+    Set<int>? accountIds,
     int? accountId,
     Set<int>? categoryIds,
     String? type,
@@ -344,7 +380,9 @@ class AppDatabase extends _$AppDatabase {
       ..where(transactions.date.isBiggerOrEqualValue(start))
       ..where(transactions.date.isSmallerOrEqualValue(end));
 
-    if (accountId != null) {
+    if (accountIds != null && accountIds.isNotEmpty) {
+      query.where(transactions.accountId.isIn(accountIds) | transactions.toAccountId.isIn(accountIds));
+    } else if (accountId != null) {
       query.where(transactions.accountId.equals(accountId) | transactions.toAccountId.equals(accountId));
     }
 
@@ -673,6 +711,69 @@ class AppDatabase extends _$AppDatabase {
     final existing = await (select(tags)..where((t) => t.name.equals(clean))).getSingleOrNull();
     if (existing != null) return existing.id;
     return into(tags).insert(TagsCompanion.insert(name: clean));
+  }
+
+  // --- Streak Queries ---
+
+  Future<StreakStateData?> getStreakState() async {
+    return (select(streakStates)..where((s) => s.id.equals(1))).getSingleOrNull();
+  }
+
+  Stream<StreakStateData?> watchStreakState() {
+    return (select(streakStates)..where((s) => s.id.equals(1))).watchSingleOrNull();
+  }
+
+  Future<void> saveStreakState(StreakStatesCompanion state) async {
+    await into(streakStates).insertOnConflictUpdate(state.copyWith(id: const Value(1)));
+  }
+
+  // --- Milestones Queries ---
+
+  Future<List<String>> getAchievedMilestoneKeys() async {
+    final rows = await select(milestonesAchieved).get();
+    return rows.map((r) => r.milestoneKey).toList();
+  }
+
+  Stream<List<MilestoneAchieved>> watchAchievedMilestones() {
+    return select(milestonesAchieved).watch();
+  }
+
+  Future<bool> markMilestoneAchieved(String key) async {
+    try {
+      await into(milestonesAchieved).insert(
+        MilestonesAchievedCompanion.insert(
+          milestoneKey: key,
+          achievedAt: DateTime.now().toIso8601String(),
+        ),
+      );
+      return true;
+    } catch (_) {
+      return false; // Already achieved
+    }
+  }
+
+  // --- Subscriptions Queries ---
+
+  Stream<List<RecurringRule>> watchActiveSubscriptions() {
+    return (select(recurringRules)
+          ..where((r) => r.isActive.equals(true) & r.isSubscription.equals(true))
+          ..orderBy([(r) => OrderingTerm.desc(r.amountCents)]))
+        .watch();
+  }
+
+  Future<List<RecurringRule>> getActiveSubscriptions() {
+    return (select(recurringRules)
+          ..where((r) => r.isActive.equals(true) & r.isSubscription.equals(true))
+          ..orderBy([(r) => OrderingTerm.desc(r.amountCents)]))
+        .get();
+  }
+
+  Future<int> toggleRecurringRuleActive(int id, bool isActive) {
+    return (update(recurringRules)..where((r) => r.id.equals(id)))
+        .write(RecurringRulesCompanion(
+      isActive: Value(isActive),
+      endDate: Value(isActive ? null : DateTime.now()),
+    ));
   }
 }
 

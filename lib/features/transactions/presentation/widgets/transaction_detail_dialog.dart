@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -132,23 +131,6 @@ class TransactionDetailDialog extends ConsumerWidget {
             if (tx.isRecurring) ...[
               _buildDetailRow('Recurring Bill', 'Yes (Auto-generated)', Icons.repeat),
               const SizedBox(height: 8),
-            ],
-
-            // Receipt Photo Preview
-            if (tx.receiptPath != null && tx.receiptPath!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              const Text('Attached Receipt:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(tx.receiptPath!),
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Text('Receipt image not found on device', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ),
-              ),
             ],
           ],
         ),

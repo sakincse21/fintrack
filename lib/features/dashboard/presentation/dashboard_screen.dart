@@ -3,12 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../milestones/presentation/widgets/milestone_celebration_dialog.dart';
+import '../../milestones/providers/milestones_provider.dart';
 import '../../quick_add/presentation/quick_add_sheet.dart';
+import '../../streaks/presentation/widgets/streak_detail_sheet.dart';
+import '../../streaks/providers/streak_provider.dart';
 import '../providers/dashboard_provider.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/budget_glance_card.dart';
 import 'widgets/category_donut_card.dart';
 import 'widgets/recent_transactions_card.dart';
+import 'widgets/subscriptions_glance_card.dart';
 import 'widgets/upcoming_bills_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -28,8 +33,20 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final streakState = ref.watch(streakProvider).valueOrNull;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    // Listen for milestone achievements and show celebration dialog
+    ref.listen<MilestoneState>(milestoneProvider, (previous, next) {
+      final celebration = next.pendingCelebration;
+      if (celebration != null &&
+          (previous == null || previous.pendingCelebration?.key != celebration.key)) {
+        MilestoneCelebrationDialog.show(context, celebration, () {
+          ref.read(milestoneProvider.notifier).dismissCelebration();
+        });
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -37,20 +54,8 @@ class DashboardScreen extends ConsumerWidget {
         toolbarHeight: 64,
         title: Row(
           children: [
-            // User Avatar Squircle
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.25), width: 1.4),
-              ),
-              child: const Center(
-                child: Icon(LucideIcons.user, color: AppColors.primary, size: 22),
-              ),
-            ),
-            const SizedBox(width: 14),
+            const Icon(LucideIcons.user, color: AppColors.primary, size: 28),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -77,23 +82,38 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 1.0,
-                ),
+          // Daily Logging Streak
+          if (streakState != null)
+            IconButton(
+              tooltip: 'Daily Streak',
+              onPressed: () => StreakDetailSheet.show(context, streakState),
+              icon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    streakState.currentStreak > 0 ? '🔥' : '❄️',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${streakState.currentStreak}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: streakState.currentStreak > 0
+                          ? AppColors.primary
+                          : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                    ),
+                  ),
+                ],
               ),
-              child: const Icon(LucideIcons.slidersHorizontal, size: 18),
             ),
+          IconButton(
+            icon: const Icon(LucideIcons.slidersHorizontal, size: 22),
             tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -113,26 +133,30 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 18),
 
-                // 2. VittaFinance 4-Column Quick Action Strip
+                // 3. VittaFinance 4-Column Quick Action Strip
                 _buildQuickActionGrid(context, isDark),
                 const SizedBox(height: 20),
 
-                // 3. VittaFinance Spending Category Donut & Breakdown
+                // 4. VittaFinance Spending Category Donut & Breakdown
                 CategoryDonutCard(
                   categories: summary.topCategories,
                   totalExpenseCents: summary.thisMonthExpenseCents,
                 ),
                 const SizedBox(height: 16),
 
-                // 4. Upcoming Bills
+                // 5. Upcoming Bills
                 const UpcomingBillsCard(),
                 const SizedBox(height: 16),
 
-                // 5. Active Budgets Glance
+                // 6. Subscriptions Glance Card
+                const SubscriptionsGlanceCard(),
+                const SizedBox(height: 16),
+
+                // 7. Active Budgets Glance
                 const BudgetGlanceCard(),
                 const SizedBox(height: 16),
 
-                // 6. Recent Transactions List
+                // 8. Recent Transactions List
                 const RecentTransactionsCard(),
                 const SizedBox(height: 36),
               ],

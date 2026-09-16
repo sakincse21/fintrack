@@ -41,14 +41,7 @@ class UpcomingBillsCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(LucideIcons.calendarClock, color: AppColors.warning, size: 14),
-                  ),
+                  const Icon(LucideIcons.calendarClock, color: AppColors.warning, size: 18),
                   const SizedBox(width: 8),
                   const Text(
                     'Upcoming Bills (7 Days)',

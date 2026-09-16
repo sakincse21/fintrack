@@ -9,6 +9,7 @@ import '../../../core/database/database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../milestones/providers/milestones_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/goals_provider.dart';
 
@@ -170,6 +171,9 @@ class GoalsScreen extends ConsumerWidget {
                         linkedAccountId: drift.Value(linkedAccountId),
                       ),
                     );
+                  }
+                  if (currentCents >= targetCents) {
+                    ref.read(milestoneProvider.notifier).triggerMilestone('first_goal');
                   }
                   if (context.mounted) Navigator.pop(ctx);
                 },
@@ -407,6 +411,10 @@ class GoalsScreen extends ConsumerWidget {
               await (db.update(db.goals)..where((g) => g.id.equals(goal.id))).write(
                 GoalsCompanion(currentAmountCents: drift.Value(newAmount)),
               );
+
+              if (isDeposit && newAmount >= goal.targetAmountCents) {
+                ref.read(milestoneProvider.notifier).triggerMilestone('first_goal');
+              }
 
               if (context.mounted) Navigator.pop(ctx);
             },

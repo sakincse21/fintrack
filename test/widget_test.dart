@@ -12,6 +12,20 @@ import 'package:fintrack/features/reports/providers/reports_provider.dart';
 import 'package:fintrack/features/settings/presentation/category_manager_screen.dart';
 import 'package:fintrack/features/settings/presentation/settings_screen.dart';
 import 'package:fintrack/features/splash/presentation/splash_screen.dart';
+import 'package:fintrack/core/database/database.dart';
+import 'package:fintrack/features/dashboard/presentation/widgets/safe_to_spend_card.dart';
+import 'package:fintrack/features/dashboard/providers/safe_to_spend_provider.dart';
+import 'package:fintrack/features/milestones/presentation/widgets/milestone_celebration_dialog.dart';
+import 'package:fintrack/features/milestones/providers/milestones_provider.dart';
+import 'package:fintrack/features/budgets/presentation/budgets_screen.dart';
+import 'package:fintrack/features/budgets/providers/budgets_provider.dart';
+import 'package:fintrack/features/reports/presentation/reports_screen.dart';
+import 'package:fintrack/features/recurring/providers/recurring_provider.dart';
+import 'package:fintrack/features/accounts/providers/accounts_provider.dart';
+import 'package:fintrack/features/transactions/providers/transactions_provider.dart';
+import 'package:fintrack/features/streaks/presentation/widgets/streak_detail_sheet.dart';
+import 'package:fintrack/features/subscriptions/presentation/subscriptions_screen.dart';
+import 'package:fintrack/features/transactions/presentation/widgets/transaction_detail_dialog.dart';
 
 void main() {
   group('CurrencyFormatter Tests', () {
@@ -226,6 +240,42 @@ void main() {
       expect(find.byType(QuickAddSheet), findsOneWidget);
     });
 
+    testWidgets('QuickAddSheet renders scrollable category row and separate full-width Account and Date rows', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            accountsListProvider.overrideWith(
+              (ref) => Stream.value([
+                const Account(
+                  id: 1,
+                  name: 'Checking Account',
+                  type: 'bank',
+                  initialBalanceCents: 100000,
+                  currency: 'USD',
+                  icon: 'account_balance',
+                  isArchived: false,
+                ),
+              ]),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: QuickAddSheet(initialType: 'expense'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Category section is present with Manage action
+      expect(find.text('Category'), findsOneWidget);
+      expect(find.text('Manage'), findsOneWidget);
+
+      // Separate Account and Date labels are present
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Date'), findsOneWidget);
+    });
+
     testWidgets('CategoryManagerScreen renders with tabs and Add button', (WidgetTester tester) async {
       await tester.pumpWidget(
         const ProviderScope(
@@ -288,9 +338,18 @@ void main() {
       expect(notifier.state.dateRangeFilter, DateRangeFilter.thisMonth);
       expect(notifier.state.activeFiltersCount, 0);
 
-      // Filter by account
+      // Filter by account (multi-select)
       notifier.setAccount(3);
       expect(notifier.state.accountId, 3);
+      expect(notifier.state.selectedAccountIds, {3});
+      expect(notifier.state.activeFiltersCount, 1);
+
+      notifier.toggleAccount(5);
+      expect(notifier.state.selectedAccountIds, {3, 5});
+      expect(notifier.state.activeFiltersCount, 2);
+
+      notifier.toggleAccount(3);
+      expect(notifier.state.selectedAccountIds, {5});
       expect(notifier.state.activeFiltersCount, 1);
 
       // Filter by categories (multi-select)
@@ -299,7 +358,12 @@ void main() {
       expect(notifier.state.selectedCategoryIds, {10, 12});
       expect(notifier.state.activeFiltersCount, 3);
 
-      // Filter by type
+      // Filter by transfer type
+      notifier.setType('transfer');
+      expect(notifier.state.selectedType, 'transfer');
+      expect(notifier.state.activeFiltersCount, 4);
+
+      // Filter by expense type
       notifier.setType('expense');
       expect(notifier.state.selectedType, 'expense');
       expect(notifier.state.activeFiltersCount, 4);
@@ -312,10 +376,521 @@ void main() {
       // Reset
       notifier.reset();
       expect(notifier.state.accountId, isNull);
+      expect(notifier.state.selectedAccountIds, isEmpty);
       expect(notifier.state.selectedCategoryIds, isEmpty);
       expect(notifier.state.selectedType, 'all');
       expect(notifier.state.dateRangeFilter, DateRangeFilter.thisMonth);
       expect(notifier.state.activeFiltersCount, 0);
     });
   });
+
+  group('Daily Logging Streak Tests', () {
+    testWidgets('StreakDetailSheet displays streak info, best, and grace days correctly', (tester) async {
+      const streak = StreakStateData(
+        id: 1,
+        currentStreak: 12,
+        longestStreak: 25,
+        lastLoggedDate: '2026-09-07',
+        graceMissesUsed: 1,
+        graceMissesMonth: '2026-09',
+        freezeAvailable: 1,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: StreakDetailSheet(streak: streak),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('12 Day Streak!'), findsOneWidget);
+      expect(find.text('25 Days'), findsOneWidget);
+      expect(find.text('1 used this month'), findsOneWidget);
+    });
+  });
+
+  group('Safe to Spend Tests', () {
+    test('SafeToSpendData calculates remainingPercentage and tiers correctly', () {
+      // Tier 1: > 20% remaining
+      const dataGreen = SafeToSpendData(
+        safeToSpendCents: 80000,
+        totalBudgetedCents: 100000,
+        totalSpentCents: 15000,
+        upcomingBillsCents: 5000,
+        goalCommitmentsCents: 0,
+        hasBudgets: true,
+        isStrict: false,
+      );
+      expect(dataGreen.remainingPercentage, 0.80);
+      expect(dataGreen.remainingPercentage > 0.20, isTrue);
+
+      // Tier 2: <= 20% remaining
+      const dataAmber = SafeToSpendData(
+        safeToSpendCents: 15000,
+        totalBudgetedCents: 100000,
+        totalSpentCents: 75000,
+        upcomingBillsCents: 10000,
+        goalCommitmentsCents: 0,
+        hasBudgets: true,
+        isStrict: false,
+      );
+      expect(dataAmber.remainingPercentage, 0.15);
+      expect(dataAmber.remainingPercentage <= 0.20 && dataAmber.safeToSpendCents >= 0, isTrue);
+
+      // Tier 3: Overspent (negative)
+      const dataRed = SafeToSpendData(
+        safeToSpendCents: -5000,
+        totalBudgetedCents: 100000,
+        totalSpentCents: 105000,
+        upcomingBillsCents: 0,
+        goalCommitmentsCents: 0,
+        hasBudgets: true,
+        isStrict: false,
+      );
+      expect(dataRed.safeToSpendCents < 0, isTrue);
+    });
+
+    testWidgets('SafeToSpendCard renders hero amount and status pill', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            safeToSpendProvider.overrideWithValue(
+              const AsyncValue.data(
+                SafeToSpendData(
+                  safeToSpendCents: 45000,
+                  totalBudgetedCents: 100000,
+                  totalSpentCents: 40000,
+                  upcomingBillsCents: 15000,
+                  goalCommitmentsCents: 0,
+                  hasBudgets: true,
+                  isStrict: false,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SafeToSpendCard(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('SAFE TO SPEND'), findsOneWidget);
+      expect(find.textContaining('450'), findsWidgets);
+      expect(find.text('left to spend this month'), findsOneWidget);
+      expect(find.text('Budgets'), findsOneWidget);
+    });
+
+    testWidgets('SafeToSpendCard with isBudgetsScreen: true hides navigation header', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            safeToSpendProvider.overrideWithValue(
+              const AsyncValue.data(
+                SafeToSpendData(
+                  safeToSpendCents: 45000,
+                  totalBudgetedCents: 100000,
+                  totalSpentCents: 40000,
+                  upcomingBillsCents: 15000,
+                  goalCommitmentsCents: 0,
+                  hasBudgets: true,
+                  isStrict: false,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SafeToSpendCard(isBudgetsScreen: true),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('SAFE TO SPEND'), findsOneWidget);
+      expect(find.text('Budgets'), findsNothing);
+    });
+  });
+
+  group('Milestones Celebrations Tests', () {
+    test('kKnownMilestones contains all key milestone definitions', () {
+      expect(kKnownMilestones.containsKey('first_transaction'), isTrue);
+      expect(kKnownMilestones.containsKey('streak_7'), isTrue);
+      expect(kKnownMilestones.containsKey('streak_30'), isTrue);
+      expect(kKnownMilestones.containsKey('streak_100'), isTrue);
+      expect(kKnownMilestones.containsKey('first_goal'), isTrue);
+      expect(kKnownMilestones.containsKey('budget_under_month_1'), isTrue);
+    });
+
+    testWidgets('MilestoneCelebrationDialog displays milestone title and dismisses', (tester) async {
+      bool dismissed = false;
+      final milestone = kKnownMilestones['streak_7']!;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MilestoneCelebrationDialog(
+              milestone: milestone,
+              onDismiss: () => dismissed = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('MILESTONE ACHIEVED'), findsOneWidget);
+      expect(find.text(milestone.title), findsOneWidget);
+      expect(find.text(milestone.description), findsOneWidget);
+
+      await tester.tap(find.text('Nice! 🎉'));
+      expect(dismissed, isTrue);
+    });
+  });
+
+  group('Subscriptions Feature Tests', () {
+    test('SubscriptionItem.normalizeToMonthly normalizes frequencies correctly', () {
+      // Monthly
+      expect(SubscriptionItem.normalizeToMonthly(1500, 'monthly'), 1500);
+
+      // Weekly: $10/week * 4.333 = $43.33 -> 4333 cents
+      expect(SubscriptionItem.normalizeToMonthly(1000, 'weekly'), 4333);
+
+      // Yearly: $120/year / 12 = $10 -> 1000 cents
+      expect(SubscriptionItem.normalizeToMonthly(12000, 'yearly'), 1000);
+
+      // Daily: $1/day * 30 = $30 -> 3000 cents
+      expect(SubscriptionItem.normalizeToMonthly(100, 'daily'), 3000);
+    });
+
+    test('SubscriptionItem.checkUnused detects overdue subscriptions beyond 1 cycle', () {
+      final now = DateTime.now();
+
+      // Future run date is NOT unused
+      final futureDate = now.add(const Duration(days: 5));
+      expect(SubscriptionItem.checkUnused(futureDate, 'monthly'), isFalse);
+
+      // Monthly overdue by 10 days is NOT unused (> 30 days needed)
+      final past10Days = now.subtract(const Duration(days: 10));
+      expect(SubscriptionItem.checkUnused(past10Days, 'monthly'), isFalse);
+
+      // Monthly overdue by 35 days IS unused (> 30 days)
+      final past35Days = now.subtract(const Duration(days: 35));
+      expect(SubscriptionItem.checkUnused(past35Days, 'monthly'), isTrue);
+
+      // Weekly overdue by 8 days IS unused (> 7 days)
+      final past8Days = now.subtract(const Duration(days: 8));
+      expect(SubscriptionItem.checkUnused(past8Days, 'weekly'), isTrue);
+    });
+
+    testWidgets('SubscriptionsScreen renders title and empty state properly', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            subscriptionsProvider.overrideWithValue(
+              AsyncValue.data(
+                SubscriptionsSummary(
+                  items: [],
+                  totalMonthlyCents: 0,
+                  activeCount: 0,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: SubscriptionsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Subscriptions'), findsOneWidget);
+      expect(find.text('No Subscriptions Tracked Yet'), findsOneWidget);
+    });
+  });
+
+  group('Settings Screen Navigation Tests', () {
+    testWidgets('SettingsScreen contains Subscriptions and Strict Safe-to-Spend switch', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: SettingsScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Subscriptions'), findsOneWidget);
+      expect(find.text('Strict Safe-to-Spend Mode'), findsOneWidget);
+    });
+  });
+
+  group('Budgets and Reports Integration Tests', () {
+    testWidgets('BudgetsScreen renders SafeToSpendCard at the top', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            budgetsWithProgressProvider.overrideWith(
+              (ref) => Stream.value([]),
+            ),
+            safeToSpendProvider.overrideWithValue(
+              const AsyncValue.data(
+                SafeToSpendData(
+                  safeToSpendCents: 52000,
+                  totalBudgetedCents: 120000,
+                  totalSpentCents: 68000,
+                  upcomingBillsCents: 0,
+                  goalCommitmentsCents: 0,
+                  hasBudgets: true,
+                  isStrict: false,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: BudgetsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(SafeToSpendCard), findsOneWidget);
+      expect(find.text('SAFE TO SPEND'), findsOneWidget);
+      expect(find.text('No budgets set for this month'), findsOneWidget);
+    });
+
+    testWidgets('ReportsScreen filter bar displays Transfer flow type and multi-select filters', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            fullAnalyticsProvider.overrideWith(
+              (ref) => Stream.value(
+                FullAnalyticsReport(
+                  dateRange: DateRange(
+                    start: DateTime(2026, 9, 1),
+                    end: DateTime(2026, 9, 30),
+                    label: 'This Month',
+                  ),
+                  totalIncomeCents: 200000,
+                  totalExpenseCents: 80000,
+                  totalTransferCents: 15000,
+                  netSavingsCents: 120000,
+                  overallSavingsRate: 60.0,
+                  monthlyTrends: [],
+                  categoryBreakdowns: [],
+                  momComparison: MonthOverMonthComparison(
+                    currentMonthIncomeCents: 200000,
+                    currentMonthExpenseCents: 80000,
+                    lastMonthIncomeCents: 180000,
+                    lastMonthExpenseCents: 90000,
+                  ),
+                  tagBreakdowns: [],
+                  accountBreakdowns: [],
+                  topMerchants: [],
+                  dayOfWeekSpends: [],
+                  timeOfMonthSpends: [],
+                ),
+              ),
+            ),
+            accountsListProvider.overrideWith(
+              (ref) => Stream.value([
+                const Account(
+                  id: 1,
+                  name: 'Checking Account',
+                  type: 'bank',
+                  initialBalanceCents: 100000,
+                  currency: 'USD',
+                  icon: 'account_balance',
+                  isArchived: false,
+                ),
+                const Account(
+                  id: 2,
+                  name: 'Cash Wallet',
+                  type: 'cash',
+                  initialBalanceCents: 50000,
+                  currency: 'USD',
+                  icon: 'wallet',
+                  isArchived: false,
+                ),
+              ]),
+            ),
+            categoriesListFilterProvider.overrideWith(
+              (ref) => Stream.value([
+                const Category(
+                  id: 10,
+                  name: 'Groceries',
+                  type: 'expense',
+                  icon: 'shopping_cart',
+                  colorValue: 0xFF10B981,
+                  parentId: null,
+                  isDefault: true,
+                ),
+              ]),
+            ),
+          ],
+          child: const MaterialApp(
+            home: ReportsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Open filter bar
+      expect(find.byTooltip('Filter Analytics'), findsOneWidget);
+      await tester.tap(find.byTooltip('Filter Analytics'));
+      await tester.pumpAndSettle();
+
+      // Verify Flow Type pills (Expense, Transfer, Income, All Flow)
+      expect(find.text('All Flow'), findsOneWidget);
+      expect(find.text('Expense'), findsWidgets);
+      expect(find.text('Transfer'), findsOneWidget);
+      expect(find.text('Income'), findsWidgets);
+
+      // Verify Account multi-select
+      expect(find.text('ACCOUNTS'), findsOneWidget);
+      expect(find.text('All Accounts'), findsOneWidget);
+      expect(find.text('Checking Account'), findsOneWidget);
+      expect(find.text('Cash Wallet'), findsOneWidget);
+
+      // Verify Category multi-select
+      expect(find.text('CATEGORIES'), findsOneWidget);
+      expect(find.text('All Categories'), findsOneWidget);
+      expect(find.text('Groceries'), findsOneWidget);
+
+      // Verify Custom Date Range button
+      expect(find.text('CUSTOM DATE RANGE'), findsOneWidget);
+      expect(find.text('Select Dates'), findsOneWidget);
+    });
+
+    testWidgets('ReportsScreen AppBar filter and share buttons are clean IconButtons matching Activity Log', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            fullAnalyticsProvider.overrideWith(
+              (ref) => Stream.value(
+                FullAnalyticsReport(
+                  dateRange: DateRange(
+                    start: DateTime(2026, 9, 1),
+                    end: DateTime(2026, 9, 30),
+                    label: 'This Month',
+                  ),
+                  totalIncomeCents: 0,
+                  totalExpenseCents: 0,
+                  totalTransferCents: 0,
+                  netSavingsCents: 0,
+                  overallSavingsRate: 0.0,
+                  monthlyTrends: [],
+                  categoryBreakdowns: [],
+                  momComparison: MonthOverMonthComparison(
+                    currentMonthIncomeCents: 0,
+                    currentMonthExpenseCents: 0,
+                    lastMonthIncomeCents: 0,
+                    lastMonthExpenseCents: 0,
+                  ),
+                  tagBreakdowns: [],
+                  accountBreakdowns: [],
+                  topMerchants: [],
+                  dayOfWeekSpends: [],
+                  timeOfMonthSpends: [],
+                ),
+              ),
+            ),
+            accountsListProvider.overrideWith((ref) => Stream.value([])),
+            categoriesListFilterProvider.overrideWith((ref) => Stream.value([])),
+          ],
+          child: const MaterialApp(
+            home: ReportsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Find Filter Analytics and Share Report
+      expect(find.byTooltip('Filter Analytics'), findsOneWidget);
+      expect(find.byTooltip('Share Report'), findsOneWidget);
+
+      // Verify they contain direct Icon widgets
+      expect(find.descendant(of: find.byTooltip('Filter Analytics'), matching: find.byType(Icon)), findsOneWidget);
+      expect(find.descendant(of: find.byTooltip('Share Report'), matching: find.byType(Icon)), findsOneWidget);
+
+      // Verify no decorated Container exists inside the buttons
+      expect(find.descendant(of: find.byTooltip('Filter Analytics'), matching: find.byType(Container)), findsNothing);
+      expect(find.descendant(of: find.byTooltip('Share Report'), matching: find.byType(Container)), findsNothing);
+    });
+
+    testWidgets('TransactionDetailDialog displays transaction details cleanly without image attachment option', (tester) async {
+      final item = TransactionWithDetails(
+        transaction: TransactionItem(
+          id: 1,
+          accountId: 1,
+          categoryId: 10,
+          amountCents: 4500,
+          type: 'expense',
+          note: 'Coffee Shop',
+          date: DateTime(2026, 9, 15, 10, 30),
+          tagIds: 'coffee,work',
+          receiptPath: '/invalid/path/to/receipt.png',
+          isRecurring: false,
+          recurringId: null,
+          toAccountId: null,
+          createdAt: DateTime.now(),
+          deletedAt: null,
+        ),
+        category: const Category(
+          id: 10,
+          name: 'Food & Dining',
+          type: 'expense',
+          icon: 'restaurant',
+          colorValue: 0xFFEF4444,
+          parentId: null,
+          isDefault: true,
+        ),
+        account: const Account(
+          id: 1,
+          name: 'Checking Account',
+          type: 'bank',
+          initialBalanceCents: 100000,
+          currency: 'USD',
+          icon: 'account_balance',
+          isArchived: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => TransactionDetailDialog(item: item),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Transaction details dialog is displayed successfully!
+      expect(find.text('Coffee Shop'), findsOneWidget);
+      expect(find.text('\$45.00'), findsOneWidget);
+      expect(find.text('Food & Dining'), findsOneWidget);
+      expect(find.text('Checking Account'), findsOneWidget);
+      expect(find.text('Attached Receipt:'), findsNothing);
+      expect(find.byType(Image), findsNothing);
+    });
+  });
 }
+
+
+

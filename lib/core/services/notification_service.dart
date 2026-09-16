@@ -111,5 +111,39 @@ class NotificationService {
       debugPrint('Error showing bill reminder: $e');
     }
   }
+
+  Future<void> showStreakAtRiskReminder({
+    required int currentStreak,
+  }) async {
+    try {
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'streak_reminders',
+        'Streak Reminders',
+        channelDescription: 'Reminders to log daily expenses and maintain your streak',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details =
+          NotificationDetails(android: androidDetails);
+
+      final title = currentStreak > 0
+          ? '🔥 Keep your $currentStreak-day streak alive!'
+          : '🔥 Log today\'s spending!';
+      final body = currentStreak > 0
+          ? 'Don\'t lose your $currentStreak-day streak — log today\'s spending in 10 seconds.'
+          : 'Take 10 seconds to record today\'s transactions and build your streak.';
+
+      await _notificationsPlugin.show(
+        9999, // dedicated streak notification ID
+        title,
+        body,
+        details,
+      );
+    } catch (e) {
+      debugPrint('Error showing streak reminder: $e');
+    }
+  }
 }
 

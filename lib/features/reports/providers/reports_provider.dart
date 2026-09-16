@@ -9,18 +9,21 @@ class ReportFilterState {
   final DateRangeFilter dateRangeFilter;
   final DateTime? customStart;
   final DateTime? customEnd;
-  final int? accountId;
+  final Set<int> selectedAccountIds;
   final Set<int> selectedCategoryIds;
-  final String selectedType; // 'all', 'expense', 'income'
+  final String selectedType; // 'all', 'expense', 'transfer', 'income'
 
   const ReportFilterState({
     this.dateRangeFilter = DateRangeFilter.thisMonth,
     this.customStart,
     this.customEnd,
-    this.accountId,
+    this.selectedAccountIds = const {},
     this.selectedCategoryIds = const {},
     this.selectedType = 'all',
   });
+
+  // Backward compatibility getter for single accountId
+  int? get accountId => selectedAccountIds.isEmpty ? null : selectedAccountIds.first;
 
   DateRange get effectiveRange => DateRange.fromFilter(
         dateRangeFilter,
@@ -31,7 +34,7 @@ class ReportFilterState {
   int get activeFiltersCount {
     int count = 0;
     if (dateRangeFilter != DateRangeFilter.thisMonth) count++;
-    if (accountId != null) count++;
+    if (selectedAccountIds.isNotEmpty) count += selectedAccountIds.length;
     if (selectedCategoryIds.isNotEmpty) count += selectedCategoryIds.length;
     if (selectedType != 'all') count++;
     return count;
@@ -42,16 +45,29 @@ class ReportFilterState {
     DateTime? customStart,
     DateTime? customEnd,
     int? accountId,
+    Set<int>? selectedAccountIds,
     Set<int>? selectedCategoryIds,
     String? selectedType,
     bool clearAccount = false,
+    bool clearAccounts = false,
     bool clearCategories = false,
   }) {
+    Set<int>? nextAccounts;
+    if (clearAccount || clearAccounts) {
+      nextAccounts = const {};
+    } else if (selectedAccountIds != null) {
+      nextAccounts = selectedAccountIds;
+    } else if (accountId != null) {
+      nextAccounts = {accountId};
+    } else {
+      nextAccounts = this.selectedAccountIds;
+    }
+
     return ReportFilterState(
       dateRangeFilter: dateRangeFilter ?? this.dateRangeFilter,
       customStart: customStart ?? this.customStart,
       customEnd: customEnd ?? this.customEnd,
-      accountId: clearAccount ? null : (accountId ?? this.accountId),
+      selectedAccountIds: nextAccounts,
       selectedCategoryIds: clearCategories ? const {} : (selectedCategoryIds ?? this.selectedCategoryIds),
       selectedType: selectedType ?? this.selectedType,
     );
@@ -74,12 +90,26 @@ class ReportFilterNotifier extends StateNotifier<ReportFilterState> {
     );
   }
 
+  void toggleAccount(int accountId) {
+    final current = Set<int>.from(state.selectedAccountIds);
+    if (current.contains(accountId)) {
+      current.remove(accountId);
+    } else {
+      current.add(accountId);
+    }
+    state = state.copyWith(selectedAccountIds: current);
+  }
+
   void setAccount(int? accountId) {
     if (accountId == null) {
-      state = state.copyWith(clearAccount: true);
+      state = state.copyWith(clearAccounts: true);
     } else {
-      state = state.copyWith(accountId: accountId);
+      state = state.copyWith(selectedAccountIds: {accountId});
     }
+  }
+
+  void clearAccounts() {
+    state = state.copyWith(clearAccounts: true);
   }
 
   void toggleCategory(int categoryId) {
@@ -111,6 +141,7 @@ class MonthlyTrendPoint {
   final String label; // "Jan 26"
   final int incomeCents;
   final int expenseCents;
+  final int transferCents;
   final int netCents;
   final double savingsRate; // 0% to 100%
 
@@ -119,6 +150,7 @@ class MonthlyTrendPoint {
     required this.label,
     required this.incomeCents,
     required this.expenseCents,
+    this.transferCents = 0,
     required this.netCents,
     required this.savingsRate,
   });
@@ -226,6 +258,7 @@ class FullAnalyticsReport {
   final DateRange dateRange;
   final int totalIncomeCents;
   final int totalExpenseCents;
+  final int totalTransferCents;
   final int netSavingsCents;
   final double overallSavingsRate;
   final List<MonthlyTrendPoint> monthlyTrends; // Last 6-12 months
@@ -241,6 +274,7 @@ class FullAnalyticsReport {
     required this.dateRange,
     required this.totalIncomeCents,
     required this.totalExpenseCents,
+    this.totalTransferCents = 0,
     required this.netSavingsCents,
     required this.overallSavingsRate,
     required this.monthlyTrends,
@@ -266,7 +300,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
     final rangeTx = await db.getTransactionsForDateRange(
       range.start,
       range.end,
-      accountId: filter.accountId,
+      accountIds: filter.selectedAccountIds,
       categoryIds: filter.selectedCategoryIds,
       type: filter.selectedType,
     );
@@ -278,6 +312,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
     // Calculate totals for range
     int totalIncome = 0;
     int totalExpense = 0;
+    int totalTransfer = 0;
     final Map<int, int> categoryTotals = {};
     final Map<int, int> categoryCounts = {};
     final Map<String, int> tagTotals = {};
@@ -294,6 +329,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
     int lateMonthSpend = 0;  // 21 - End
 
     final isIncomeOnly = filter.selectedType == 'income';
+    final isTransferOnly = filter.selectedType == 'transfer';
 
     for (final item in rangeTx) {
       final tx = item.transaction;
@@ -310,7 +346,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
         accountSpent[tx.accountId] = (accountSpent[tx.accountId] ?? 0) + tx.amountCents;
 
         // Category breakdown
-        if (!isIncomeOnly && tx.categoryId != null) {
+        if (!isIncomeOnly && !isTransferOnly && tx.categoryId != null) {
           categoryTotals[tx.categoryId!] = (categoryTotals[tx.categoryId!] ?? 0) + tx.amountCents;
           categoryCounts[tx.categoryId!] = (categoryCounts[tx.categoryId!] ?? 0) + 1;
         }
@@ -342,6 +378,42 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
         } else {
           lateMonthSpend += tx.amountCents;
         }
+      } else if (tx.type == 'transfer') {
+        totalTransfer += tx.amountCents;
+        accountSpent[tx.accountId] = (accountSpent[tx.accountId] ?? 0) + tx.amountCents;
+        if (tx.toAccountId != null) {
+          accountIncome[tx.toAccountId!] = (accountIncome[tx.toAccountId!] ?? 0) + tx.amountCents;
+        }
+
+        if (isTransferOnly && tx.categoryId != null) {
+          categoryTotals[tx.categoryId!] = (categoryTotals[tx.categoryId!] ?? 0) + tx.amountCents;
+          categoryCounts[tx.categoryId!] = (categoryCounts[tx.categoryId!] ?? 0) + 1;
+        }
+
+        if (isTransferOnly && tx.tagIds.isNotEmpty) {
+          final tags = tx.tagIds.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty);
+          for (final t in tags) {
+            tagTotals[t] = (tagTotals[t] ?? 0) + tx.amountCents;
+            tagCounts[t] = (tagCounts[t] ?? 0) + 1;
+          }
+        }
+
+        final noteKey = tx.note.trim().isNotEmpty ? tx.note.trim() : (item.category?.name ?? 'Transfer');
+        merchantTotals[noteKey] = (merchantTotals[noteKey] ?? 0) + tx.amountCents;
+        merchantCounts[noteKey] = (merchantCounts[noteKey] ?? 0) + 1;
+        merchantCat[noteKey] = item.category;
+
+        if (isTransferOnly) {
+          final wd = tx.date.weekday;
+          weekdaySpend[wd] = (weekdaySpend[wd] ?? 0) + tx.amountCents;
+          if (tx.date.day <= 10) {
+            earlyMonthSpend += tx.amountCents;
+          } else if (tx.date.day <= 20) {
+            midMonthSpend += tx.amountCents;
+          } else {
+            lateMonthSpend += tx.amountCents;
+          }
+        }
       }
     }
 
@@ -353,14 +425,14 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
     final otherCat = Category(
       id: 0,
       name: 'Uncategorized',
-      type: isIncomeOnly ? 'income' : 'expense',
+      type: isIncomeOnly ? 'income' : (isTransferOnly ? 'transfer' : 'expense'),
       icon: 'category',
       colorValue: AppColors.categoryPalette.last.toARGB32(),
       parentId: null,
       isDefault: false,
     );
 
-    final baseTotal = isIncomeOnly ? totalIncome : totalExpense;
+    final baseTotal = isIncomeOnly ? totalIncome : (isTransferOnly ? totalTransfer : totalExpense);
 
     categoryTotals.forEach((catId, total) {
       final cat = catMap[catId] ?? otherCat;
@@ -442,17 +514,20 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
       return db.getTransactionsForDateRange(
         mStart,
         mEnd,
-        accountId: filter.accountId,
+        accountIds: filter.selectedAccountIds,
         categoryIds: filter.selectedCategoryIds,
         type: filter.selectedType,
       ).then((mTx) {
         int mInc = 0;
         int mExp = 0;
+        int mTrf = 0;
         for (final t in mTx) {
           if (t.transaction.type == 'income') {
             mInc += t.transaction.amountCents;
           } else if (t.transaction.type == 'expense') {
             mExp += t.transaction.amountCents;
+          } else if (t.transaction.type == 'transfer') {
+            mTrf += t.transaction.amountCents;
           }
         }
         final mNet = mInc - mExp;
@@ -463,6 +538,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
           label: AppDateUtils.formatShortMonth(monthTarget),
           incomeCents: mInc,
           expenseCents: mExp,
+          transferCents: mTrf,
           netCents: mNet,
           savingsRate: mRate,
         );
@@ -481,14 +557,14 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
       db.getTransactionsForDateRange(
         thisMonthStart,
         thisMonthEnd,
-        accountId: filter.accountId,
+        accountIds: filter.selectedAccountIds,
         categoryIds: filter.selectedCategoryIds,
         type: filter.selectedType,
       ),
       db.getTransactionsForDateRange(
         lastMonthStart,
         lastMonthEnd,
-        accountId: filter.accountId,
+        accountIds: filter.selectedAccountIds,
         categoryIds: filter.selectedCategoryIds,
         type: filter.selectedType,
       ),
@@ -518,6 +594,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
       dateRange: range,
       totalIncomeCents: totalIncome,
       totalExpenseCents: totalExpense,
+      totalTransferCents: totalTransfer,
       netSavingsCents: netSavings,
       overallSavingsRate: overallSavingsRate,
       monthlyTrends: trendPoints,

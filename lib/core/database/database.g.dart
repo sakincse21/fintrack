@@ -1843,6 +1843,21 @@ class $RecurringRulesTable extends RecurringRules
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isSubscriptionMeta = const VerificationMeta(
+    'isSubscription',
+  );
+  @override
+  late final GeneratedColumn<bool> isSubscription = GeneratedColumn<bool>(
+    'is_subscription',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_subscription" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1856,6 +1871,7 @@ class $RecurringRulesTable extends RecurringRules
     nextRunDate,
     endDate,
     isActive,
+    isSubscription,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1948,6 +1964,15 @@ class $RecurringRulesTable extends RecurringRules
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('is_subscription')) {
+      context.handle(
+        _isSubscriptionMeta,
+        isSubscription.isAcceptableOrUnknown(
+          data['is_subscription']!,
+          _isSubscriptionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2001,6 +2026,10 @@ class $RecurringRulesTable extends RecurringRules
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      isSubscription: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_subscription'],
+      )!,
     );
   }
 
@@ -2022,6 +2051,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
   final DateTime nextRunDate;
   final DateTime? endDate;
   final bool isActive;
+  final bool isSubscription;
   const RecurringRule({
     required this.id,
     required this.accountId,
@@ -2034,6 +2064,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
     required this.nextRunDate,
     this.endDate,
     required this.isActive,
+    required this.isSubscription,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2053,6 +2084,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
       map['end_date'] = Variable<DateTime>(endDate);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['is_subscription'] = Variable<bool>(isSubscription);
     return map;
   }
 
@@ -2073,6 +2105,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
           ? const Value.absent()
           : Value(endDate),
       isActive: Value(isActive),
+      isSubscription: Value(isSubscription),
     );
   }
 
@@ -2093,6 +2126,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
       nextRunDate: serializer.fromJson<DateTime>(json['nextRunDate']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      isSubscription: serializer.fromJson<bool>(json['isSubscription']),
     );
   }
   @override
@@ -2110,6 +2144,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
       'nextRunDate': serializer.toJson<DateTime>(nextRunDate),
       'endDate': serializer.toJson<DateTime?>(endDate),
       'isActive': serializer.toJson<bool>(isActive),
+      'isSubscription': serializer.toJson<bool>(isSubscription),
     };
   }
 
@@ -2125,6 +2160,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
     DateTime? nextRunDate,
     Value<DateTime?> endDate = const Value.absent(),
     bool? isActive,
+    bool? isSubscription,
   }) => RecurringRule(
     id: id ?? this.id,
     accountId: accountId ?? this.accountId,
@@ -2137,6 +2173,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
     nextRunDate: nextRunDate ?? this.nextRunDate,
     endDate: endDate.present ? endDate.value : this.endDate,
     isActive: isActive ?? this.isActive,
+    isSubscription: isSubscription ?? this.isSubscription,
   );
   RecurringRule copyWithCompanion(RecurringRulesCompanion data) {
     return RecurringRule(
@@ -2157,6 +2194,9 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
           : this.nextRunDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isSubscription: data.isSubscription.present
+          ? data.isSubscription.value
+          : this.isSubscription,
     );
   }
 
@@ -2173,7 +2213,8 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
           ..write('interval: $interval, ')
           ..write('nextRunDate: $nextRunDate, ')
           ..write('endDate: $endDate, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('isSubscription: $isSubscription')
           ..write(')'))
         .toString();
   }
@@ -2191,6 +2232,7 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
     nextRunDate,
     endDate,
     isActive,
+    isSubscription,
   );
   @override
   bool operator ==(Object other) =>
@@ -2206,7 +2248,8 @@ class RecurringRule extends DataClass implements Insertable<RecurringRule> {
           other.interval == this.interval &&
           other.nextRunDate == this.nextRunDate &&
           other.endDate == this.endDate &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.isSubscription == this.isSubscription);
 }
 
 class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
@@ -2221,6 +2264,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
   final Value<DateTime> nextRunDate;
   final Value<DateTime?> endDate;
   final Value<bool> isActive;
+  final Value<bool> isSubscription;
   const RecurringRulesCompanion({
     this.id = const Value.absent(),
     this.accountId = const Value.absent(),
@@ -2233,6 +2277,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
     this.nextRunDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isSubscription = const Value.absent(),
   });
   RecurringRulesCompanion.insert({
     this.id = const Value.absent(),
@@ -2246,6 +2291,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
     required DateTime nextRunDate,
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isSubscription = const Value.absent(),
   }) : accountId = Value(accountId),
        amountCents = Value(amountCents),
        type = Value(type),
@@ -2263,6 +2309,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
     Expression<DateTime>? nextRunDate,
     Expression<DateTime>? endDate,
     Expression<bool>? isActive,
+    Expression<bool>? isSubscription,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2276,6 +2323,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
       if (nextRunDate != null) 'next_run_date': nextRunDate,
       if (endDate != null) 'end_date': endDate,
       if (isActive != null) 'is_active': isActive,
+      if (isSubscription != null) 'is_subscription': isSubscription,
     });
   }
 
@@ -2291,6 +2339,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
     Value<DateTime>? nextRunDate,
     Value<DateTime?>? endDate,
     Value<bool>? isActive,
+    Value<bool>? isSubscription,
   }) {
     return RecurringRulesCompanion(
       id: id ?? this.id,
@@ -2304,6 +2353,7 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
       nextRunDate: nextRunDate ?? this.nextRunDate,
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
+      isSubscription: isSubscription ?? this.isSubscription,
     );
   }
 
@@ -2343,6 +2393,9 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (isSubscription.present) {
+      map['is_subscription'] = Variable<bool>(isSubscription.value);
+    }
     return map;
   }
 
@@ -2359,7 +2412,8 @@ class RecurringRulesCompanion extends UpdateCompanion<RecurringRule> {
           ..write('interval: $interval, ')
           ..write('nextRunDate: $nextRunDate, ')
           ..write('endDate: $endDate, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('isSubscription: $isSubscription')
           ..write(')'))
         .toString();
   }
@@ -3643,6 +3697,752 @@ class MerchantRulesCompanion extends UpdateCompanion<MerchantRule> {
   }
 }
 
+class $StreakStatesTable extends StreakStates
+    with TableInfo<$StreakStatesTable, StreakStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StreakStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _currentStreakMeta = const VerificationMeta(
+    'currentStreak',
+  );
+  @override
+  late final GeneratedColumn<int> currentStreak = GeneratedColumn<int>(
+    'current_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _longestStreakMeta = const VerificationMeta(
+    'longestStreak',
+  );
+  @override
+  late final GeneratedColumn<int> longestStreak = GeneratedColumn<int>(
+    'longest_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastLoggedDateMeta = const VerificationMeta(
+    'lastLoggedDate',
+  );
+  @override
+  late final GeneratedColumn<String> lastLoggedDate = GeneratedColumn<String>(
+    'last_logged_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _graceMissesUsedMeta = const VerificationMeta(
+    'graceMissesUsed',
+  );
+  @override
+  late final GeneratedColumn<int> graceMissesUsed = GeneratedColumn<int>(
+    'grace_misses_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _graceMissesMonthMeta = const VerificationMeta(
+    'graceMissesMonth',
+  );
+  @override
+  late final GeneratedColumn<String> graceMissesMonth = GeneratedColumn<String>(
+    'grace_misses_month',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _freezeAvailableMeta = const VerificationMeta(
+    'freezeAvailable',
+  );
+  @override
+  late final GeneratedColumn<int> freezeAvailable = GeneratedColumn<int>(
+    'freeze_available',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    currentStreak,
+    longestStreak,
+    lastLoggedDate,
+    graceMissesUsed,
+    graceMissesMonth,
+    freezeAvailable,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'streak_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StreakStateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('current_streak')) {
+      context.handle(
+        _currentStreakMeta,
+        currentStreak.isAcceptableOrUnknown(
+          data['current_streak']!,
+          _currentStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('longest_streak')) {
+      context.handle(
+        _longestStreakMeta,
+        longestStreak.isAcceptableOrUnknown(
+          data['longest_streak']!,
+          _longestStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_logged_date')) {
+      context.handle(
+        _lastLoggedDateMeta,
+        lastLoggedDate.isAcceptableOrUnknown(
+          data['last_logged_date']!,
+          _lastLoggedDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('grace_misses_used')) {
+      context.handle(
+        _graceMissesUsedMeta,
+        graceMissesUsed.isAcceptableOrUnknown(
+          data['grace_misses_used']!,
+          _graceMissesUsedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('grace_misses_month')) {
+      context.handle(
+        _graceMissesMonthMeta,
+        graceMissesMonth.isAcceptableOrUnknown(
+          data['grace_misses_month']!,
+          _graceMissesMonthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('freeze_available')) {
+      context.handle(
+        _freezeAvailableMeta,
+        freezeAvailable.isAcceptableOrUnknown(
+          data['freeze_available']!,
+          _freezeAvailableMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StreakStateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StreakStateData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      currentStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_streak'],
+      )!,
+      longestStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}longest_streak'],
+      )!,
+      lastLoggedDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_logged_date'],
+      ),
+      graceMissesUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}grace_misses_used'],
+      )!,
+      graceMissesMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}grace_misses_month'],
+      ),
+      freezeAvailable: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}freeze_available'],
+      )!,
+    );
+  }
+
+  @override
+  $StreakStatesTable createAlias(String alias) {
+    return $StreakStatesTable(attachedDatabase, alias);
+  }
+}
+
+class StreakStateData extends DataClass implements Insertable<StreakStateData> {
+  final int id;
+  final int currentStreak;
+  final int longestStreak;
+  final String? lastLoggedDate;
+  final int graceMissesUsed;
+  final String? graceMissesMonth;
+  final int freezeAvailable;
+  const StreakStateData({
+    required this.id,
+    required this.currentStreak,
+    required this.longestStreak,
+    this.lastLoggedDate,
+    required this.graceMissesUsed,
+    this.graceMissesMonth,
+    required this.freezeAvailable,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['current_streak'] = Variable<int>(currentStreak);
+    map['longest_streak'] = Variable<int>(longestStreak);
+    if (!nullToAbsent || lastLoggedDate != null) {
+      map['last_logged_date'] = Variable<String>(lastLoggedDate);
+    }
+    map['grace_misses_used'] = Variable<int>(graceMissesUsed);
+    if (!nullToAbsent || graceMissesMonth != null) {
+      map['grace_misses_month'] = Variable<String>(graceMissesMonth);
+    }
+    map['freeze_available'] = Variable<int>(freezeAvailable);
+    return map;
+  }
+
+  StreakStatesCompanion toCompanion(bool nullToAbsent) {
+    return StreakStatesCompanion(
+      id: Value(id),
+      currentStreak: Value(currentStreak),
+      longestStreak: Value(longestStreak),
+      lastLoggedDate: lastLoggedDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastLoggedDate),
+      graceMissesUsed: Value(graceMissesUsed),
+      graceMissesMonth: graceMissesMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(graceMissesMonth),
+      freezeAvailable: Value(freezeAvailable),
+    );
+  }
+
+  factory StreakStateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StreakStateData(
+      id: serializer.fromJson<int>(json['id']),
+      currentStreak: serializer.fromJson<int>(json['currentStreak']),
+      longestStreak: serializer.fromJson<int>(json['longestStreak']),
+      lastLoggedDate: serializer.fromJson<String?>(json['lastLoggedDate']),
+      graceMissesUsed: serializer.fromJson<int>(json['graceMissesUsed']),
+      graceMissesMonth: serializer.fromJson<String?>(json['graceMissesMonth']),
+      freezeAvailable: serializer.fromJson<int>(json['freezeAvailable']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'currentStreak': serializer.toJson<int>(currentStreak),
+      'longestStreak': serializer.toJson<int>(longestStreak),
+      'lastLoggedDate': serializer.toJson<String?>(lastLoggedDate),
+      'graceMissesUsed': serializer.toJson<int>(graceMissesUsed),
+      'graceMissesMonth': serializer.toJson<String?>(graceMissesMonth),
+      'freezeAvailable': serializer.toJson<int>(freezeAvailable),
+    };
+  }
+
+  StreakStateData copyWith({
+    int? id,
+    int? currentStreak,
+    int? longestStreak,
+    Value<String?> lastLoggedDate = const Value.absent(),
+    int? graceMissesUsed,
+    Value<String?> graceMissesMonth = const Value.absent(),
+    int? freezeAvailable,
+  }) => StreakStateData(
+    id: id ?? this.id,
+    currentStreak: currentStreak ?? this.currentStreak,
+    longestStreak: longestStreak ?? this.longestStreak,
+    lastLoggedDate: lastLoggedDate.present
+        ? lastLoggedDate.value
+        : this.lastLoggedDate,
+    graceMissesUsed: graceMissesUsed ?? this.graceMissesUsed,
+    graceMissesMonth: graceMissesMonth.present
+        ? graceMissesMonth.value
+        : this.graceMissesMonth,
+    freezeAvailable: freezeAvailable ?? this.freezeAvailable,
+  );
+  StreakStateData copyWithCompanion(StreakStatesCompanion data) {
+    return StreakStateData(
+      id: data.id.present ? data.id.value : this.id,
+      currentStreak: data.currentStreak.present
+          ? data.currentStreak.value
+          : this.currentStreak,
+      longestStreak: data.longestStreak.present
+          ? data.longestStreak.value
+          : this.longestStreak,
+      lastLoggedDate: data.lastLoggedDate.present
+          ? data.lastLoggedDate.value
+          : this.lastLoggedDate,
+      graceMissesUsed: data.graceMissesUsed.present
+          ? data.graceMissesUsed.value
+          : this.graceMissesUsed,
+      graceMissesMonth: data.graceMissesMonth.present
+          ? data.graceMissesMonth.value
+          : this.graceMissesMonth,
+      freezeAvailable: data.freezeAvailable.present
+          ? data.freezeAvailable.value
+          : this.freezeAvailable,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StreakStateData(')
+          ..write('id: $id, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('longestStreak: $longestStreak, ')
+          ..write('lastLoggedDate: $lastLoggedDate, ')
+          ..write('graceMissesUsed: $graceMissesUsed, ')
+          ..write('graceMissesMonth: $graceMissesMonth, ')
+          ..write('freezeAvailable: $freezeAvailable')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    currentStreak,
+    longestStreak,
+    lastLoggedDate,
+    graceMissesUsed,
+    graceMissesMonth,
+    freezeAvailable,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StreakStateData &&
+          other.id == this.id &&
+          other.currentStreak == this.currentStreak &&
+          other.longestStreak == this.longestStreak &&
+          other.lastLoggedDate == this.lastLoggedDate &&
+          other.graceMissesUsed == this.graceMissesUsed &&
+          other.graceMissesMonth == this.graceMissesMonth &&
+          other.freezeAvailable == this.freezeAvailable);
+}
+
+class StreakStatesCompanion extends UpdateCompanion<StreakStateData> {
+  final Value<int> id;
+  final Value<int> currentStreak;
+  final Value<int> longestStreak;
+  final Value<String?> lastLoggedDate;
+  final Value<int> graceMissesUsed;
+  final Value<String?> graceMissesMonth;
+  final Value<int> freezeAvailable;
+  const StreakStatesCompanion({
+    this.id = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.longestStreak = const Value.absent(),
+    this.lastLoggedDate = const Value.absent(),
+    this.graceMissesUsed = const Value.absent(),
+    this.graceMissesMonth = const Value.absent(),
+    this.freezeAvailable = const Value.absent(),
+  });
+  StreakStatesCompanion.insert({
+    this.id = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.longestStreak = const Value.absent(),
+    this.lastLoggedDate = const Value.absent(),
+    this.graceMissesUsed = const Value.absent(),
+    this.graceMissesMonth = const Value.absent(),
+    this.freezeAvailable = const Value.absent(),
+  });
+  static Insertable<StreakStateData> custom({
+    Expression<int>? id,
+    Expression<int>? currentStreak,
+    Expression<int>? longestStreak,
+    Expression<String>? lastLoggedDate,
+    Expression<int>? graceMissesUsed,
+    Expression<String>? graceMissesMonth,
+    Expression<int>? freezeAvailable,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (currentStreak != null) 'current_streak': currentStreak,
+      if (longestStreak != null) 'longest_streak': longestStreak,
+      if (lastLoggedDate != null) 'last_logged_date': lastLoggedDate,
+      if (graceMissesUsed != null) 'grace_misses_used': graceMissesUsed,
+      if (graceMissesMonth != null) 'grace_misses_month': graceMissesMonth,
+      if (freezeAvailable != null) 'freeze_available': freezeAvailable,
+    });
+  }
+
+  StreakStatesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? currentStreak,
+    Value<int>? longestStreak,
+    Value<String?>? lastLoggedDate,
+    Value<int>? graceMissesUsed,
+    Value<String?>? graceMissesMonth,
+    Value<int>? freezeAvailable,
+  }) {
+    return StreakStatesCompanion(
+      id: id ?? this.id,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      lastLoggedDate: lastLoggedDate ?? this.lastLoggedDate,
+      graceMissesUsed: graceMissesUsed ?? this.graceMissesUsed,
+      graceMissesMonth: graceMissesMonth ?? this.graceMissesMonth,
+      freezeAvailable: freezeAvailable ?? this.freezeAvailable,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (currentStreak.present) {
+      map['current_streak'] = Variable<int>(currentStreak.value);
+    }
+    if (longestStreak.present) {
+      map['longest_streak'] = Variable<int>(longestStreak.value);
+    }
+    if (lastLoggedDate.present) {
+      map['last_logged_date'] = Variable<String>(lastLoggedDate.value);
+    }
+    if (graceMissesUsed.present) {
+      map['grace_misses_used'] = Variable<int>(graceMissesUsed.value);
+    }
+    if (graceMissesMonth.present) {
+      map['grace_misses_month'] = Variable<String>(graceMissesMonth.value);
+    }
+    if (freezeAvailable.present) {
+      map['freeze_available'] = Variable<int>(freezeAvailable.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StreakStatesCompanion(')
+          ..write('id: $id, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('longestStreak: $longestStreak, ')
+          ..write('lastLoggedDate: $lastLoggedDate, ')
+          ..write('graceMissesUsed: $graceMissesUsed, ')
+          ..write('graceMissesMonth: $graceMissesMonth, ')
+          ..write('freezeAvailable: $freezeAvailable')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MilestonesAchievedTable extends MilestonesAchieved
+    with TableInfo<$MilestonesAchievedTable, MilestoneAchieved> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MilestonesAchievedTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _milestoneKeyMeta = const VerificationMeta(
+    'milestoneKey',
+  );
+  @override
+  late final GeneratedColumn<String> milestoneKey = GeneratedColumn<String>(
+    'milestone_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _achievedAtMeta = const VerificationMeta(
+    'achievedAt',
+  );
+  @override
+  late final GeneratedColumn<String> achievedAt = GeneratedColumn<String>(
+    'achieved_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, milestoneKey, achievedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'milestones_achieved';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MilestoneAchieved> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('milestone_key')) {
+      context.handle(
+        _milestoneKeyMeta,
+        milestoneKey.isAcceptableOrUnknown(
+          data['milestone_key']!,
+          _milestoneKeyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_milestoneKeyMeta);
+    }
+    if (data.containsKey('achieved_at')) {
+      context.handle(
+        _achievedAtMeta,
+        achievedAt.isAcceptableOrUnknown(data['achieved_at']!, _achievedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_achievedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MilestoneAchieved map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MilestoneAchieved(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      milestoneKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}milestone_key'],
+      )!,
+      achievedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}achieved_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MilestonesAchievedTable createAlias(String alias) {
+    return $MilestonesAchievedTable(attachedDatabase, alias);
+  }
+}
+
+class MilestoneAchieved extends DataClass
+    implements Insertable<MilestoneAchieved> {
+  final int id;
+  final String milestoneKey;
+  final String achievedAt;
+  const MilestoneAchieved({
+    required this.id,
+    required this.milestoneKey,
+    required this.achievedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['milestone_key'] = Variable<String>(milestoneKey);
+    map['achieved_at'] = Variable<String>(achievedAt);
+    return map;
+  }
+
+  MilestonesAchievedCompanion toCompanion(bool nullToAbsent) {
+    return MilestonesAchievedCompanion(
+      id: Value(id),
+      milestoneKey: Value(milestoneKey),
+      achievedAt: Value(achievedAt),
+    );
+  }
+
+  factory MilestoneAchieved.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MilestoneAchieved(
+      id: serializer.fromJson<int>(json['id']),
+      milestoneKey: serializer.fromJson<String>(json['milestoneKey']),
+      achievedAt: serializer.fromJson<String>(json['achievedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'milestoneKey': serializer.toJson<String>(milestoneKey),
+      'achievedAt': serializer.toJson<String>(achievedAt),
+    };
+  }
+
+  MilestoneAchieved copyWith({
+    int? id,
+    String? milestoneKey,
+    String? achievedAt,
+  }) => MilestoneAchieved(
+    id: id ?? this.id,
+    milestoneKey: milestoneKey ?? this.milestoneKey,
+    achievedAt: achievedAt ?? this.achievedAt,
+  );
+  MilestoneAchieved copyWithCompanion(MilestonesAchievedCompanion data) {
+    return MilestoneAchieved(
+      id: data.id.present ? data.id.value : this.id,
+      milestoneKey: data.milestoneKey.present
+          ? data.milestoneKey.value
+          : this.milestoneKey,
+      achievedAt: data.achievedAt.present
+          ? data.achievedAt.value
+          : this.achievedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MilestoneAchieved(')
+          ..write('id: $id, ')
+          ..write('milestoneKey: $milestoneKey, ')
+          ..write('achievedAt: $achievedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, milestoneKey, achievedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MilestoneAchieved &&
+          other.id == this.id &&
+          other.milestoneKey == this.milestoneKey &&
+          other.achievedAt == this.achievedAt);
+}
+
+class MilestonesAchievedCompanion extends UpdateCompanion<MilestoneAchieved> {
+  final Value<int> id;
+  final Value<String> milestoneKey;
+  final Value<String> achievedAt;
+  const MilestonesAchievedCompanion({
+    this.id = const Value.absent(),
+    this.milestoneKey = const Value.absent(),
+    this.achievedAt = const Value.absent(),
+  });
+  MilestonesAchievedCompanion.insert({
+    this.id = const Value.absent(),
+    required String milestoneKey,
+    required String achievedAt,
+  }) : milestoneKey = Value(milestoneKey),
+       achievedAt = Value(achievedAt);
+  static Insertable<MilestoneAchieved> custom({
+    Expression<int>? id,
+    Expression<String>? milestoneKey,
+    Expression<String>? achievedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (milestoneKey != null) 'milestone_key': milestoneKey,
+      if (achievedAt != null) 'achieved_at': achievedAt,
+    });
+  }
+
+  MilestonesAchievedCompanion copyWith({
+    Value<int>? id,
+    Value<String>? milestoneKey,
+    Value<String>? achievedAt,
+  }) {
+    return MilestonesAchievedCompanion(
+      id: id ?? this.id,
+      milestoneKey: milestoneKey ?? this.milestoneKey,
+      achievedAt: achievedAt ?? this.achievedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (milestoneKey.present) {
+      map['milestone_key'] = Variable<String>(milestoneKey.value);
+    }
+    if (achievedAt.present) {
+      map['achieved_at'] = Variable<String>(achievedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MilestonesAchievedCompanion(')
+          ..write('id: $id, ')
+          ..write('milestoneKey: $milestoneKey, ')
+          ..write('achievedAt: $achievedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3654,6 +4454,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalsTable goals = $GoalsTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $MerchantRulesTable merchantRules = $MerchantRulesTable(this);
+  late final $StreakStatesTable streakStates = $StreakStatesTable(this);
+  late final $MilestonesAchievedTable milestonesAchieved =
+      $MilestonesAchievedTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3667,6 +4470,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goals,
     tags,
     merchantRules,
+    streakStates,
+    milestonesAchieved,
   ];
 }
 
@@ -4518,6 +5323,7 @@ typedef $$RecurringRulesTableCreateCompanionBuilder =
       required DateTime nextRunDate,
       Value<DateTime?> endDate,
       Value<bool> isActive,
+      Value<bool> isSubscription,
     });
 typedef $$RecurringRulesTableUpdateCompanionBuilder =
     RecurringRulesCompanion Function({
@@ -4532,6 +5338,7 @@ typedef $$RecurringRulesTableUpdateCompanionBuilder =
       Value<DateTime> nextRunDate,
       Value<DateTime?> endDate,
       Value<bool> isActive,
+      Value<bool> isSubscription,
     });
 
 class $$RecurringRulesTableFilterComposer
@@ -4595,6 +5402,11 @@ class $$RecurringRulesTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSubscription => $composableBuilder(
+    column: $table.isSubscription,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4662,6 +5474,11 @@ class $$RecurringRulesTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isSubscription => $composableBuilder(
+    column: $table.isSubscription,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecurringRulesTableAnnotationComposer
@@ -4711,6 +5528,11 @@ class $$RecurringRulesTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSubscription => $composableBuilder(
+    column: $table.isSubscription,
+    builder: (column) => column,
+  );
 }
 
 class $$RecurringRulesTableTableManager
@@ -4757,6 +5579,7 @@ class $$RecurringRulesTableTableManager
                 Value<DateTime> nextRunDate = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isSubscription = const Value.absent(),
               }) => RecurringRulesCompanion(
                 id: id,
                 accountId: accountId,
@@ -4769,6 +5592,7 @@ class $$RecurringRulesTableTableManager
                 nextRunDate: nextRunDate,
                 endDate: endDate,
                 isActive: isActive,
+                isSubscription: isSubscription,
               ),
           createCompanionCallback:
               ({
@@ -4783,6 +5607,7 @@ class $$RecurringRulesTableTableManager
                 required DateTime nextRunDate,
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isSubscription = const Value.absent(),
               }) => RecurringRulesCompanion.insert(
                 id: id,
                 accountId: accountId,
@@ -4795,6 +5620,7 @@ class $$RecurringRulesTableTableManager
                 nextRunDate: nextRunDate,
                 endDate: endDate,
                 isActive: isActive,
+                isSubscription: isSubscription,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -5521,6 +6347,423 @@ typedef $$MerchantRulesTableProcessedTableManager =
       MerchantRule,
       PrefetchHooks Function()
     >;
+typedef $$StreakStatesTableCreateCompanionBuilder =
+    StreakStatesCompanion Function({
+      Value<int> id,
+      Value<int> currentStreak,
+      Value<int> longestStreak,
+      Value<String?> lastLoggedDate,
+      Value<int> graceMissesUsed,
+      Value<String?> graceMissesMonth,
+      Value<int> freezeAvailable,
+    });
+typedef $$StreakStatesTableUpdateCompanionBuilder =
+    StreakStatesCompanion Function({
+      Value<int> id,
+      Value<int> currentStreak,
+      Value<int> longestStreak,
+      Value<String?> lastLoggedDate,
+      Value<int> graceMissesUsed,
+      Value<String?> graceMissesMonth,
+      Value<int> freezeAvailable,
+    });
+
+class $$StreakStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $StreakStatesTable> {
+  $$StreakStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastLoggedDate => $composableBuilder(
+    column: $table.lastLoggedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get graceMissesUsed => $composableBuilder(
+    column: $table.graceMissesUsed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get graceMissesMonth => $composableBuilder(
+    column: $table.graceMissesMonth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get freezeAvailable => $composableBuilder(
+    column: $table.freezeAvailable,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StreakStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $StreakStatesTable> {
+  $$StreakStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastLoggedDate => $composableBuilder(
+    column: $table.lastLoggedDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get graceMissesUsed => $composableBuilder(
+    column: $table.graceMissesUsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get graceMissesMonth => $composableBuilder(
+    column: $table.graceMissesMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get freezeAvailable => $composableBuilder(
+    column: $table.freezeAvailable,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StreakStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StreakStatesTable> {
+  $$StreakStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get longestStreak => $composableBuilder(
+    column: $table.longestStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastLoggedDate => $composableBuilder(
+    column: $table.lastLoggedDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get graceMissesUsed => $composableBuilder(
+    column: $table.graceMissesUsed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get graceMissesMonth => $composableBuilder(
+    column: $table.graceMissesMonth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get freezeAvailable => $composableBuilder(
+    column: $table.freezeAvailable,
+    builder: (column) => column,
+  );
+}
+
+class $$StreakStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StreakStatesTable,
+          StreakStateData,
+          $$StreakStatesTableFilterComposer,
+          $$StreakStatesTableOrderingComposer,
+          $$StreakStatesTableAnnotationComposer,
+          $$StreakStatesTableCreateCompanionBuilder,
+          $$StreakStatesTableUpdateCompanionBuilder,
+          (
+            StreakStateData,
+            BaseReferences<_$AppDatabase, $StreakStatesTable, StreakStateData>,
+          ),
+          StreakStateData,
+          PrefetchHooks Function()
+        > {
+  $$StreakStatesTableTableManager(_$AppDatabase db, $StreakStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StreakStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StreakStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StreakStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
+                Value<int> longestStreak = const Value.absent(),
+                Value<String?> lastLoggedDate = const Value.absent(),
+                Value<int> graceMissesUsed = const Value.absent(),
+                Value<String?> graceMissesMonth = const Value.absent(),
+                Value<int> freezeAvailable = const Value.absent(),
+              }) => StreakStatesCompanion(
+                id: id,
+                currentStreak: currentStreak,
+                longestStreak: longestStreak,
+                lastLoggedDate: lastLoggedDate,
+                graceMissesUsed: graceMissesUsed,
+                graceMissesMonth: graceMissesMonth,
+                freezeAvailable: freezeAvailable,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
+                Value<int> longestStreak = const Value.absent(),
+                Value<String?> lastLoggedDate = const Value.absent(),
+                Value<int> graceMissesUsed = const Value.absent(),
+                Value<String?> graceMissesMonth = const Value.absent(),
+                Value<int> freezeAvailable = const Value.absent(),
+              }) => StreakStatesCompanion.insert(
+                id: id,
+                currentStreak: currentStreak,
+                longestStreak: longestStreak,
+                lastLoggedDate: lastLoggedDate,
+                graceMissesUsed: graceMissesUsed,
+                graceMissesMonth: graceMissesMonth,
+                freezeAvailable: freezeAvailable,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StreakStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StreakStatesTable,
+      StreakStateData,
+      $$StreakStatesTableFilterComposer,
+      $$StreakStatesTableOrderingComposer,
+      $$StreakStatesTableAnnotationComposer,
+      $$StreakStatesTableCreateCompanionBuilder,
+      $$StreakStatesTableUpdateCompanionBuilder,
+      (
+        StreakStateData,
+        BaseReferences<_$AppDatabase, $StreakStatesTable, StreakStateData>,
+      ),
+      StreakStateData,
+      PrefetchHooks Function()
+    >;
+typedef $$MilestonesAchievedTableCreateCompanionBuilder =
+    MilestonesAchievedCompanion Function({
+      Value<int> id,
+      required String milestoneKey,
+      required String achievedAt,
+    });
+typedef $$MilestonesAchievedTableUpdateCompanionBuilder =
+    MilestonesAchievedCompanion Function({
+      Value<int> id,
+      Value<String> milestoneKey,
+      Value<String> achievedAt,
+    });
+
+class $$MilestonesAchievedTableFilterComposer
+    extends Composer<_$AppDatabase, $MilestonesAchievedTable> {
+  $$MilestonesAchievedTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get milestoneKey => $composableBuilder(
+    column: $table.milestoneKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get achievedAt => $composableBuilder(
+    column: $table.achievedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MilestonesAchievedTableOrderingComposer
+    extends Composer<_$AppDatabase, $MilestonesAchievedTable> {
+  $$MilestonesAchievedTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get milestoneKey => $composableBuilder(
+    column: $table.milestoneKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get achievedAt => $composableBuilder(
+    column: $table.achievedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MilestonesAchievedTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MilestonesAchievedTable> {
+  $$MilestonesAchievedTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get milestoneKey => $composableBuilder(
+    column: $table.milestoneKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get achievedAt => $composableBuilder(
+    column: $table.achievedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$MilestonesAchievedTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MilestonesAchievedTable,
+          MilestoneAchieved,
+          $$MilestonesAchievedTableFilterComposer,
+          $$MilestonesAchievedTableOrderingComposer,
+          $$MilestonesAchievedTableAnnotationComposer,
+          $$MilestonesAchievedTableCreateCompanionBuilder,
+          $$MilestonesAchievedTableUpdateCompanionBuilder,
+          (
+            MilestoneAchieved,
+            BaseReferences<
+              _$AppDatabase,
+              $MilestonesAchievedTable,
+              MilestoneAchieved
+            >,
+          ),
+          MilestoneAchieved,
+          PrefetchHooks Function()
+        > {
+  $$MilestonesAchievedTableTableManager(
+    _$AppDatabase db,
+    $MilestonesAchievedTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MilestonesAchievedTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MilestonesAchievedTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MilestonesAchievedTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> milestoneKey = const Value.absent(),
+                Value<String> achievedAt = const Value.absent(),
+              }) => MilestonesAchievedCompanion(
+                id: id,
+                milestoneKey: milestoneKey,
+                achievedAt: achievedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String milestoneKey,
+                required String achievedAt,
+              }) => MilestonesAchievedCompanion.insert(
+                id: id,
+                milestoneKey: milestoneKey,
+                achievedAt: achievedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MilestonesAchievedTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MilestonesAchievedTable,
+      MilestoneAchieved,
+      $$MilestonesAchievedTableFilterComposer,
+      $$MilestonesAchievedTableOrderingComposer,
+      $$MilestonesAchievedTableAnnotationComposer,
+      $$MilestonesAchievedTableCreateCompanionBuilder,
+      $$MilestonesAchievedTableUpdateCompanionBuilder,
+      (
+        MilestoneAchieved,
+        BaseReferences<
+          _$AppDatabase,
+          $MilestonesAchievedTable,
+          MilestoneAchieved
+        >,
+      ),
+      MilestoneAchieved,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5540,4 +6783,8 @@ class $AppDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$MerchantRulesTableTableManager get merchantRules =>
       $$MerchantRulesTableTableManager(_db, _db.merchantRules);
+  $$StreakStatesTableTableManager get streakStates =>
+      $$StreakStatesTableTableManager(_db, _db.streakStates);
+  $$MilestonesAchievedTableTableManager get milestonesAchieved =>
+      $$MilestonesAchievedTableTableManager(_db, _db.milestonesAchieved);
 }

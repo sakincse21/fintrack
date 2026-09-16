@@ -54,3 +54,89 @@ final upcomingBillsNext7DaysProvider =
   });
 });
 
+class SubscriptionItem {
+  final RecurringRuleWithDetails details;
+  final int monthlyNormalizedCents;
+  final bool isUnused;
+
+  SubscriptionItem({
+    required this.details,
+    required this.monthlyNormalizedCents,
+    required this.isUnused,
+  });
+
+  static int normalizeToMonthly(int amountCents, String frequency) {
+    switch (frequency.toLowerCase()) {
+      case 'daily':
+        return amountCents * 30;
+      case 'weekly':
+        return (amountCents * 4.333).round();
+      case 'yearly':
+        return (amountCents / 12).round();
+      case 'monthly':
+      default:
+        return amountCents;
+    }
+  }
+
+  static bool checkUnused(DateTime nextRunDate, String frequency) {
+    final now = DateTime.now();
+    if (nextRunDate.isAfter(now)) return false;
+    final overdueDays = now.difference(nextRunDate).inDays;
+    switch (frequency.toLowerCase()) {
+      case 'weekly':
+        return overdueDays > 7;
+      case 'yearly':
+        return overdueDays > 365;
+      case 'monthly':
+      default:
+        return overdueDays > 30;
+    }
+  }
+}
+
+class SubscriptionsSummary {
+  final List<SubscriptionItem> items;
+  final int totalMonthlyCents;
+  final int activeCount;
+
+  SubscriptionsSummary({
+    required this.items,
+    required this.totalMonthlyCents,
+    required this.activeCount,
+  });
+}
+
+final subscriptionsProvider = Provider<AsyncValue<SubscriptionsSummary>>((ref) {
+  final rulesAsync = ref.watch(activeRecurringRulesProvider);
+
+  return rulesAsync.whenData((rules) {
+    final subRules = rules.where((r) => r.rule.isSubscription).toList();
+    final items = subRules.map((r) {
+      final monthly = SubscriptionItem.normalizeToMonthly(
+        r.rule.amountCents,
+        r.rule.frequency,
+      );
+      final isUnused = SubscriptionItem.checkUnused(
+        r.rule.nextRunDate,
+        r.rule.frequency,
+      );
+      return SubscriptionItem(
+        details: r,
+        monthlyNormalizedCents: monthly,
+        isUnused: isUnused,
+      );
+    }).toList()
+      // Sort by highest cost first
+      ..sort((a, b) => b.monthlyNormalizedCents.compareTo(a.monthlyNormalizedCents));
+
+    final total = items.fold<int>(0, (sum, i) => sum + i.monthlyNormalizedCents);
+
+    return SubscriptionsSummary(
+      items: items,
+      totalMonthlyCents: total,
+      activeCount: items.length,
+    );
+  });
+});
+

@@ -122,35 +122,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             alignment: Alignment.topRight,
             children: [
               IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: _showFilterBar || activeFilterCount > 0
-                        ? AppColors.primary.withValues(alpha: 0.15)
-                        : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: _showFilterBar || activeFilterCount > 0
-                          ? AppColors.primary
-                          : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Icon(
-                    _showFilterBar ? LucideIcons.listFilter : LucideIcons.filter,
-                    size: 18,
-                    color: _showFilterBar || activeFilterCount > 0
-                        ? AppColors.primary
-                        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                  ),
-                ),
+                icon: Icon(_showFilterBar ? LucideIcons.listFilter : LucideIcons.filter, size: 22),
                 tooltip: 'Filter Analytics',
+                color: _showFilterBar || activeFilterCount > 0 ? AppColors.primary : null,
                 onPressed: () => setState(() => _showFilterBar = !_showFilterBar),
               ),
               if (activeFilterCount > 0)
                 Positioned(
-                  top: 5,
-                  right: 5,
+                  top: 6,
+                  right: 6,
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -167,28 +147,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
             ],
           ),
-          const SizedBox(width: 4),
-
           // Share Report Button
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 1.0,
-                ),
-              ),
-              child: const Icon(LucideIcons.share2, size: 18),
-            ),
+            icon: const Icon(LucideIcons.share2, size: 22),
             tooltip: 'Share Report',
             onPressed: () {
               reportAsync.whenData((rep) => _shareReportSummary(rep, currency.symbol));
             },
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -203,19 +170,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   // Type badge
                   if (filter.selectedType != 'all')
                     _buildActiveBadge(
-                      label: filter.selectedType == 'expense' ? 'Expense Only' : 'Income Only',
+                      label: filter.selectedType == 'expense'
+                          ? 'Expense Only'
+                          : filter.selectedType == 'income'
+                              ? 'Income Only'
+                              : 'Transfer Only',
                       onDelete: () => filterNotifier.setType('all'),
                     ),
 
-                  // Account badge
-                  if (filter.accountId != null)
+                  // Account badges (multi-select)
+                  if (filter.selectedAccountIds.isNotEmpty)
                     accountsAsync.when(
                       data: (accounts) {
-                        final acc = accounts.where((a) => a.id == filter.accountId).firstOrNull;
-                        if (acc == null) return const SizedBox.shrink();
-                        return _buildActiveBadge(
-                          label: acc.name,
-                          onDelete: () => filterNotifier.setAccount(null),
+                        final accMap = {for (var a in accounts) a.id: a};
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: filter.selectedAccountIds.map((accId) {
+                            final acc = accMap[accId];
+                            return _buildActiveBadge(
+                              label: acc?.name ?? 'Account #$accId',
+                              onDelete: () => filterNotifier.toggleAccount(accId),
+                            );
+                          }).toList(),
                         );
                       },
                       loading: () => const SizedBox.shrink(),
@@ -342,14 +318,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                         const SizedBox(width: 8),
                         _buildMultiFilterPill(
-                          label: 'Expense Only',
+                          label: 'Expense',
                           isSelected: filter.selectedType == 'expense',
                           onTap: () => filterNotifier.setType(filter.selectedType == 'expense' ? 'all' : 'expense'),
                           color: AppColors.expense,
                         ),
                         const SizedBox(width: 8),
                         _buildMultiFilterPill(
-                          label: 'Income Only',
+                          label: 'Transfer',
+                          isSelected: filter.selectedType == 'transfer',
+                          onTap: () => filterNotifier.setType(filter.selectedType == 'transfer' ? 'all' : 'transfer'),
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildMultiFilterPill(
+                          label: 'Income',
                           isSelected: filter.selectedType == 'income',
                           onTap: () => filterNotifier.setType(filter.selectedType == 'income' ? 'all' : 'income'),
                           color: AppColors.income,
@@ -359,44 +342,109 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 2. Account Selector
+                  // 2. Account Multi-Select
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'ACCOUNT',
-                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 0.5),
-                            ),
-                            const SizedBox(height: 6),
-                            accountsAsync.when(
-                              data: (rawAccounts) {
-                                final seenIds = <int>{};
-                                final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
-                                final selectedValue = accounts.any((a) => a.id == filter.accountId) ? filter.accountId : null;
-
-                                return DropdownButtonFormField<int?>(
-                                  key: ValueKey('report_filter_acc_$selectedValue'),
-                                  initialValue: selectedValue,
-                                  decoration: const InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  items: [
-                                    const DropdownMenuItem(value: null, child: Text('All Accounts', style: TextStyle(fontSize: 13))),
-                                    ...accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name, style: const TextStyle(fontSize: 13)))),
-                                  ],
-                                  onChanged: (id) => filterNotifier.setAccount(id),
-                                );
-                              },
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
+                      Row(
+                        children: [
+                          const Text(
+                            'ACCOUNTS',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 0.5),
+                          ),
+                          if (filter.selectedAccountIds.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${filter.selectedAccountIds.length} selected',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
+                      if (filter.selectedAccountIds.isNotEmpty)
+                        InkWell(
+                          onTap: () => filterNotifier.clearAccounts(),
+                          child: const Text('Clear', style: TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  accountsAsync.when(
+                    data: (rawAccounts) {
+                      final seenIds = <int>{};
+                      final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildMultiFilterPill(
+                              label: 'All Accounts',
+                              isSelected: filter.selectedAccountIds.isEmpty,
+                              onTap: () => filterNotifier.clearAccounts(),
+                            ),
+                            const SizedBox(width: 8),
+                            ...accounts.map((acc) {
+                              final isSelected = filter.selectedAccountIds.contains(acc.id);
+
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: InkWell(
+                                  onTap: () => filterNotifier.toggleAccount(acc.id),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (isSelected) ...[
+                                          const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                          const SizedBox(width: 5),
+                                        ] else ...[
+                                          Icon(IconHelper.getIcon(acc.icon), size: 15, color: AppColors.primary),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        Text(
+                                          acc.name,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 14),
 
@@ -566,7 +614,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     const SizedBox(height: 18),
 
                     // 4. Cashflow Summary Card
-                    _buildSummaryCard(report, currency.symbol, isDark),
+                    _buildSummaryCard(report, currency.symbol, isDark, filter),
                     const SizedBox(height: 18),
 
                     // 5. Top Places & Merchants
@@ -647,7 +695,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isSelected && label != 'All Flow' && label != 'All Categories') ...[
+            if (isSelected && label != 'All Flow' && label != 'All Categories' && label != 'All Accounts') ...[
               const Icon(LucideIcons.check, size: 13, color: Colors.white),
               const SizedBox(width: 5),
             ],
@@ -795,9 +843,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   // 1. VittaFinance Monthly Overview Donut + Side Legend Card
   Widget _buildVittaMonthlyOverview(FullAnalyticsReport report, String symbol, bool isDark, ReportFilterState filter) {
     final isIncomeOnly = filter.selectedType == 'income';
-    final totalAmount = isIncomeOnly ? report.totalIncomeCents : report.totalExpenseCents;
+    final isTransferOnly = filter.selectedType == 'transfer';
+    final totalAmount = isIncomeOnly
+        ? report.totalIncomeCents
+        : (isTransferOnly ? report.totalTransferCents : report.totalExpenseCents);
     final breakdowns = report.categoryBreakdowns;
-    final title = isIncomeOnly ? 'Income Overview' : (filter.selectedType == 'expense' ? 'Expense Overview' : 'Monthly Overview');
+    final title = isIncomeOnly
+        ? 'Income Overview'
+        : (isTransferOnly
+            ? 'Transfer Overview'
+            : (filter.selectedType == 'expense' ? 'Expense Overview' : 'Monthly Overview'));
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -838,7 +893,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     Icon(LucideIcons.chartPie, size: 44, color: Colors.grey.withValues(alpha: 0.3)),
                     const SizedBox(height: 10),
                     Text(
-                      'No ${isIncomeOnly ? 'income' : 'expense'} records for this period',
+                      'No ${isIncomeOnly ? 'income' : (isTransferOnly ? 'transfer' : 'expense')} records for this period',
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                         fontSize: 14,
@@ -886,7 +941,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            isIncomeOnly ? 'Income' : 'Total',
+                            isIncomeOnly ? 'Income' : (isTransferOnly ? 'Transfer' : 'Total'),
                             style: TextStyle(
                               fontSize: 11.5,
                               color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
@@ -982,13 +1037,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (trends.isEmpty) return const SizedBox.shrink();
 
     final isIncomeOnly = filter.selectedType == 'income';
+    final isTransferOnly = filter.selectedType == 'transfer';
     final maxVal = trends.fold<int>(1, (max, t) {
-      final amt = isIncomeOnly ? t.incomeCents : t.expenseCents;
+      final amt = isIncomeOnly ? t.incomeCents : (isTransferOnly ? t.transferCents : t.expenseCents);
       return amt > max ? amt : max;
     });
 
-    final title = isIncomeOnly ? 'Income Trend' : 'Spending Trend';
-    final primaryBarColor = isIncomeOnly ? AppColors.income : AppColors.primary;
+    final title = isIncomeOnly ? 'Income Trend' : (isTransferOnly ? 'Transfer Trend' : 'Spending Trend');
+    final primaryBarColor = isIncomeOnly ? AppColors.income : (isTransferOnly ? AppColors.primary : AppColors.primary);
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -1046,7 +1102,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final item = trends[groupIndex];
                         final monthName = DateFormat('MMM').format(item.monthDate);
-                        final amtVal = isIncomeOnly ? item.incomeCents : item.expenseCents;
+                        final amtVal = isIncomeOnly ? item.incomeCents : (isTransferOnly ? item.transferCents : item.expenseCents);
                         final amt = CurrencyFormatter.formatCents(amtVal, symbol: symbol);
                         return BarTooltipItem(
                           '$monthName\n$amt',
@@ -1094,7 +1150,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     final idx = e.key;
                     final item = e.value;
                     final isLatest = idx == trends.length - 1;
-                    final amtVal = isIncomeOnly ? item.incomeCents : item.expenseCents;
+                    final amtVal = isIncomeOnly ? item.incomeCents : (isTransferOnly ? item.transferCents : item.expenseCents);
 
                     return BarChartGroupData(
                       x: idx,
@@ -1220,7 +1276,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // 4. Cash Flow Summary Overview
-  Widget _buildSummaryCard(FullAnalyticsReport report, String symbol, bool isDark) {
+  Widget _buildSummaryCard(FullAnalyticsReport report, String symbol, bool isDark, ReportFilterState filter) {
+    final isTransferOnly = filter.selectedType == 'transfer';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1228,20 +1286,39 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildSummaryCol('Income', '+${CurrencyFormatter.formatCents(report.totalIncomeCents, symbol: symbol)}', AppColors.income),
-          Container(width: 1, height: 40, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          _buildSummaryCol('Expenses', '-${CurrencyFormatter.formatCents(report.totalExpenseCents, symbol: symbol)}', AppColors.expense),
-          Container(width: 1, height: 40, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          _buildSummaryCol(
-            'Savings Rate',
-            '${report.overallSavingsRate.toStringAsFixed(1)}%',
-            report.overallSavingsRate >= 0 ? AppColors.income : AppColors.expense,
-          ),
-        ],
-      ),
+      child: isTransferOnly
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryCol(
+                  'Total Transfers',
+                  CurrencyFormatter.formatCents(report.totalTransferCents, symbol: symbol),
+                  AppColors.primary,
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryCol(
+                  'Income',
+                  '+${CurrencyFormatter.formatCents(report.totalIncomeCents, symbol: symbol)}',
+                  AppColors.income,
+                ),
+                Container(width: 1, height: 40, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                _buildSummaryCol(
+                  'Expenses',
+                  '-${CurrencyFormatter.formatCents(report.totalExpenseCents, symbol: symbol)}',
+                  AppColors.expense,
+                ),
+                Container(width: 1, height: 40, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                _buildSummaryCol(
+                  'Savings Rate',
+                  '${report.overallSavingsRate.toStringAsFixed(1)}%',
+                  report.overallSavingsRate >= 0 ? AppColors.income : AppColors.expense,
+                ),
+              ],
+            ),
     );
   }
 
@@ -1274,14 +1351,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 7),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(LucideIcons.store, color: AppColors.primary, size: 16),
-                  ),
+                  const Icon(LucideIcons.store, color: AppColors.primary, size: 20),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

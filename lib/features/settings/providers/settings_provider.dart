@@ -66,3 +66,25 @@ final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((r
 
 final budgetAlertThresholdProvider = StateProvider<double>((ref) => 0.80);
 
+class IncludeGoalsInSafeToSpendNotifier extends StateNotifier<bool> {
+  IncludeGoalsInSafeToSpendNotifier() : super(false) {
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('pref_include_goals_in_safe_to_spend') ?? false;
+  }
+
+  Future<void> setIncludeGoals(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('pref_include_goals_in_safe_to_spend', value);
+  }
+}
+
+final includeGoalsInSafeToSpendProvider =
+    StateNotifierProvider<IncludeGoalsInSafeToSpendNotifier, bool>((ref) {
+  return IncludeGoalsInSafeToSpendNotifier();
+});
+

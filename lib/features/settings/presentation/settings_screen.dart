@@ -329,6 +329,15 @@ class SettingsScreen extends ConsumerWidget {
                     );
                   },
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: const Icon(LucideIcons.repeat, color: AppColors.primary, size: 22),
+                  title: const Text('Subscriptions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
+                  subtitle: const Text('Track recurring services, streaming & memberships', style: TextStyle(fontSize: 13)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  onTap: () => context.push('/subscriptions'),
+                ),
               ],
             ),
           ),
@@ -356,6 +365,18 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: Text(themeLabel, style: const TextStyle(fontSize: 13)),
                   trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
                   onTap: () => _showThemePicker(context, ref),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  secondary: const Icon(LucideIcons.shieldCheck, color: AppColors.primary, size: 22),
+                  title: const Text('Strict Safe-to-Spend Mode', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
+                  subtitle: const Text('Deduct monthly goal savings targets from daily safe-to-spend allowance', style: TextStyle(fontSize: 13)),
+                  value: ref.watch(includeGoalsInSafeToSpendProvider),
+                  activeThumbColor: AppColors.primary,
+                  onChanged: (val) {
+                    ref.read(includeGoalsInSafeToSpendProvider.notifier).setIncludeGoals(val);
+                  },
                 ),
               ],
             ),

@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -12,8 +10,10 @@ import '../../../core/database/database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../milestones/providers/milestones_provider.dart';
 import '../../settings/presentation/category_manager_screen.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../streaks/providers/streak_provider.dart';
 import 'widgets/natural_voice_input_dialog.dart';
 
 class QuickAddSheet extends ConsumerStatefulWidget {
@@ -50,9 +50,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   int? _selectedAccountId;
   int? _selectedToAccountId; // for transfer
   DateTime _selectedDate = DateTime.now();
-  String? _receiptImagePath;
   bool _saveAndAddAnother = false;
-  bool _showAllCategories = false;
   bool _isAutoMatched = false;
   bool _showMoreOptions = false;
 
@@ -71,7 +69,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       _selectedAccountId = tx.accountId;
       _selectedToAccountId = tx.toAccountId;
       _selectedDate = tx.date;
-      _receiptImagePath = tx.receiptPath;
       _tagController.text = tx.tagIds;
       _showMoreOptions = true;
     }
@@ -106,20 +103,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         _selectedCategoryId = matchedCat.id;
         _isAutoMatched = true;
       });
-    }
-  }
-
-  Future<void> _pickReceipt(ImageSource source) async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 80);
-      if (picked != null) {
-        setState(() {
-          _receiptImagePath = picked.path;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error picking receipt: $e');
     }
   }
 
@@ -159,7 +142,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           note: drift.Value(note),
           date: drift.Value(_selectedDate),
           tagIds: drift.Value(_tagController.text.trim()),
-          receiptPath: drift.Value(_receiptImagePath),
           toAccountId: drift.Value(_selectedType == 'transfer' ? _selectedToAccountId : null),
         ),
       );
@@ -174,10 +156,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           note: drift.Value(note),
           date: _selectedDate,
           tagIds: drift.Value(_tagController.text.trim()),
-          receiptPath: drift.Value(_receiptImagePath),
           toAccountId: drift.Value(_selectedType == 'transfer' ? _selectedToAccountId : null),
         ),
       );
+
+      // Record streak and trigger milestones
+      await ref.read(streakProvider.notifier).recordTransactionForStreak(_selectedDate);
+      final txCount = await (db.select(db.transactions)..limit(2)).get();
+      if (txCount.length == 1) {
+        ref.read(milestoneProvider.notifier).triggerMilestone('first_transaction');
+      }
 
       // Budget Alert check
       if (_selectedType == 'expense' && _selectedCategoryId != null) {
@@ -204,7 +192,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           _amountController.clear();
           _noteController.clear();
           _tagController.clear();
-          _receiptImagePath = null;
           _isAutoMatched = false;
         });
         _amountFocusNode.requestFocus();
@@ -405,7 +392,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ),
                   const SizedBox(height: 18),
 
-                  // 3. CLEAN CATEGORY GRID (Overflow-Proof)
+                  // 3. HORIZONTALLY SCROLLABLE CATEGORY ROW
                   if (_selectedType != 'transfer') ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -434,9 +421,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                           ],
                         ),
                         InkWell(
-                          onTap: () => setState(() => _showAllCategories = !_showAllCategories),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CategoryManagerScreen()),
+                            );
+                          },
                           child: Text(
-                            _showAllCategories ? 'Fewer' : 'All Categories',
+                            'Manage',
                             style: TextStyle(
                               fontSize: 13.5,
                               color: theme.colorScheme.primary,
@@ -446,7 +438,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
                     StreamBuilder<List<Category>>(
                       stream: db.watchCategories(type: _selectedType),
@@ -454,55 +446,96 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         final categories = snapshot.data ?? [];
                         if (categories.isEmpty) return const SizedBox.shrink();
 
-                        final displayList = _showAllCategories ? categories : categories.take(8).toList();
-
-                        if (_selectedCategoryId == null && categories.isNotEmpty) {
+                        if (_selectedCategoryId == null || !categories.any((c) => c.id == _selectedCategoryId)) {
                           _selectedCategoryId = categories.first.id;
                         }
 
-                        final totalItemCount = displayList.length + (_showAllCategories ? 1 : 0);
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: [
+                              ...categories.map((cat) {
+                                final isSelected = _selectedCategoryId == cat.id;
+                                final catColor = Color(cat.colorValue);
 
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.95,
-                          ),
-                          itemCount: totalItemCount,
-                          itemBuilder: (context, index) {
-                            if (index >= displayList.length) {
-                              return InkWell(
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCategoryId = cat.id;
+                                        _isAutoMatched = false;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                      child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? catColor.withValues(alpha: 0.18)
+                                            : isDark
+                                                ? AppColors.darkSurfaceElevated
+                                                : AppColors.lightSurfaceElevated,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isSelected ? catColor : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            IconHelper.getIcon(cat.icon),
+                                            color: isSelected ? catColor : (isDark ? Colors.white70 : Colors.black87),
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 7),
+                                          Text(
+                                            cat.name,
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                              color: isSelected
+                                                  ? (isDark ? Colors.white : Colors.black87)
+                                                  : (isDark ? Colors.white70 : Colors.black87),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                              InkWell(
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (_) => const CategoryManagerScreen()),
                                   );
                                 },
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: AppColors.primary.withValues(alpha: 0.4),
-                                      width: 1.5,
-                                      style: BorderStyle.solid,
+                                      width: 1.2,
                                     ),
                                   ),
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(LucideIcons.plus, color: AppColors.primary, size: 22),
-                                      SizedBox(height: 5),
+                                      Icon(LucideIcons.plus, color: AppColors.primary, size: 18),
+                                      SizedBox(width: 6),
                                       Text(
-                                        '+ New',
-                                        textAlign: TextAlign.center,
+                                        'New',
                                         style: TextStyle(
-                                          fontSize: 12,
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.primary,
                                         ),
@@ -510,251 +543,160 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                                     ],
                                   ),
                                 ),
-                              );
-                            }
-
-                            final cat = displayList[index];
-                            final isSelected = _selectedCategoryId == cat.id;
-                            final catColor = Color(cat.colorValue);
-
-                            return InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedCategoryId = cat.id;
-                                  _isAutoMatched = false;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(14),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? catColor.withValues(alpha: 0.18)
-                                      : isDark
-                                          ? AppColors.darkSurfaceElevated
-                                          : AppColors.lightSurfaceElevated,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isSelected ? catColor : Colors.transparent,
-                                    width: 1.8,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      IconHelper.getIcon(cat.icon),
-                                      color: catColor,
-                                      size: 23,
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Flexible(
-                                      child: Text(
-                                        cat.name,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         );
                       },
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                   ],
 
-                  // 4. NOTE & MERCHANT INPUT FIELD
-                  TextField(
-                    controller: _noteController,
-                    decoration: InputDecoration(
-                      hintText: 'Note or Merchant (e.g. Starbucks, Uber)',
-                      prefixIcon: const Icon(Icons.notes_rounded, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      suffixIcon: _receiptImagePath != null
-                          ? Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Stack(
-                                alignment: Alignment.topRight,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: Image.file(
-                                      File(_receiptImagePath!),
-                                      width: 28,
-                                      height: 28,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => setState(() => _receiptImagePath = null),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(1),
-                                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 9),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                              tooltip: 'Attach Receipt',
-                              onPressed: () => _pickReceipt(ImageSource.camera),
-                            ),
+                  // 4. DATE SELECTOR (Full Width)
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDate = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date',
+                        prefixIcon: Icon(Icons.calendar_today_outlined, size: 17),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      child: Text(
+                        DateFormat('EEEE, MMM d, yyyy').format(_selectedDate),
+                        style: const TextStyle(fontSize: 13.5),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
 
-                  // 5. ACCOUNT & DATE ROW
-                  Row(
-                    children: [
-                      // Account Selector
-                      Expanded(
-                        child: accountsAsync.when(
-                          data: (rawAccounts) {
-                            final seenIds = <int>{};
-                            final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
-                            if (accounts.isEmpty) return const SizedBox.shrink();
-                            if (_selectedAccountId == null || !accounts.any((a) => a.id == _selectedAccountId)) {
-                              _selectedAccountId = accounts.first.id;
-                            }
+                  // 5. ACCOUNT SELECTOR (Full Width)
+                  accountsAsync.when(
+                    data: (rawAccounts) {
+                      final seenIds = <int>{};
+                      final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
+                      if (accounts.isEmpty) return const SizedBox.shrink();
+                      if (_selectedAccountId == null || !accounts.any((a) => a.id == _selectedAccountId)) {
+                        _selectedAccountId = accounts.first.id;
+                      }
 
-                            return DropdownButtonFormField<int>(
-                              key: ValueKey('from_acc_$_selectedAccountId'),
-                              initialValue: _selectedAccountId,
-                              decoration: const InputDecoration(
-                                labelText: 'Account',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              items: accounts.map((acc) {
-                                return DropdownMenuItem<int>(
-                                  value: acc.id,
-                                  child: Row(
-                                    children: [
-                                      Icon(IconHelper.getIcon(acc.icon), size: 14),
-                                      const SizedBox(width: 6),
-                                      Text(acc.name, style: const TextStyle(fontSize: 12)),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    _selectedAccountId = val;
-                                    if (_selectedToAccountId == val) {
-                                      final others = accounts.where((a) => a.id != val).toList();
-                                      _selectedToAccountId = others.isNotEmpty ? others.first.id : null;
-                                    }
-                                  });
-                                }
-                              },
-                            );
-                          },
-                          loading: () => const LinearProgressIndicator(),
-                          error: (_, __) => const SizedBox.shrink(),
+                      return DropdownButtonFormField<int>(
+                        key: ValueKey('from_acc_$_selectedAccountId'),
+                        initialValue: _selectedAccountId,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: _selectedType == 'transfer' ? 'From Account' : 'Account',
+                          prefixIcon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // If Transfer: Destination Account; Else: Date Picker
-                      if (_selectedType == 'transfer') ...[
-                        Expanded(
-                          child: accountsAsync.when(
-                            data: (rawAccounts) {
-                              final seenIds = <int>{};
-                              final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
-                              final toAccounts = accounts.where((a) => a.id != _selectedAccountId).toList();
-
-                              if (toAccounts.isEmpty) {
-                                return const InputDecorator(
-                                  decoration: InputDecoration(
-                                    labelText: 'To Account',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  child: Text('No other account', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                );
-                              }
-
-                              if (_selectedToAccountId == null || !toAccounts.any((a) => a.id == _selectedToAccountId)) {
-                                _selectedToAccountId = toAccounts.first.id;
-                              }
-
-                              return DropdownButtonFormField<int>(
-                                key: ValueKey('to_acc_${_selectedToAccountId}_from_$_selectedAccountId'),
-                                initialValue: _selectedToAccountId,
-                                decoration: const InputDecoration(
-                                  labelText: 'To Account',
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                ),
-                                items: toAccounts.map((acc) {
-                                  return DropdownMenuItem<int>(
-                                    value: acc.id,
-                                    child: Row(
-                                      children: [
-                                        Icon(IconHelper.getIcon(acc.icon), size: 14),
-                                        const SizedBox(width: 6),
-                                        Text(acc.name, style: const TextStyle(fontSize: 12)),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() => _selectedToAccountId = val);
-                                  }
-                                },
-                              );
-                            },
-                            loading: () => const LinearProgressIndicator(),
-                            error: (_, __) => const SizedBox.shrink(),
-                          ),
-                        ),
-                      ] else ...[
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2035),
-                              );
-                              if (picked != null) {
-                                setState(() => _selectedDate = picked);
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Date',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.calendar_today_outlined, size: 13),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    DateFormat('MMM d, yyyy').format(_selectedDate),
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
+                        items: accounts.map((acc) {
+                          return DropdownMenuItem<int>(
+                            value: acc.id,
+                            child: Row(
+                              children: [
+                                Icon(IconHelper.getIcon(acc.icon), size: 16),
+                                const SizedBox(width: 8),
+                                Text(acc.name, style: const TextStyle(fontSize: 13.5)),
+                              ],
                             ),
-                          ),
-                        ),
-                      ],
-                    ],
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedAccountId = val;
+                              if (_selectedToAccountId == val) {
+                                final others = accounts.where((a) => a.id != val).toList();
+                                _selectedToAccountId = others.isNotEmpty ? others.first.id : null;
+                              }
+                            });
+                          }
+                        },
+                      );
+                    },
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
 
-                  // 6. EXPANDABLE MORE OPTIONS (Tags)
+                  // If Transfer: Destination Account (Full Width)
+                  if (_selectedType == 'transfer') ...[
+                    const SizedBox(height: 10),
+                    accountsAsync.when(
+                      data: (rawAccounts) {
+                        final seenIds = <int>{};
+                        final accounts = rawAccounts.where((a) => seenIds.add(a.id)).toList();
+                        final toAccounts = accounts.where((a) => a.id != _selectedAccountId).toList();
+
+                        if (toAccounts.isEmpty) {
+                          return const InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'To Account',
+                              prefixIcon: Icon(Icons.arrow_downward_rounded, size: 18),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            ),
+                            child: Text('No other account', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          );
+                        }
+
+                        if (_selectedToAccountId == null || !toAccounts.any((a) => a.id == _selectedToAccountId)) {
+                          _selectedToAccountId = toAccounts.first.id;
+                        }
+
+                        return DropdownButtonFormField<int>(
+                          key: ValueKey('to_acc_${_selectedToAccountId}_from_$_selectedAccountId'),
+                          initialValue: _selectedToAccountId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'To Account',
+                            prefixIcon: Icon(Icons.arrow_downward_rounded, size: 18),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          ),
+                          items: toAccounts.map((acc) {
+                            return DropdownMenuItem<int>(
+                              value: acc.id,
+                              child: Row(
+                                children: [
+                                  Icon(IconHelper.getIcon(acc.icon), size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(acc.name, style: const TextStyle(fontSize: 13.5)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedToAccountId = val);
+                            }
+                          },
+                        );
+                      },
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+
+                  // 6. NOTE & MERCHANT INPUT FIELD
+                  TextField(
+                    controller: _noteController,
+                    decoration: const InputDecoration(
+                      hintText: 'Note or Merchant (e.g. Starbucks, Uber)',
+                      prefixIcon: Icon(Icons.notes_rounded, size: 18),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+
+                  // 7. EXPANDABLE MORE OPTIONS (Tags)
                   if (!_showMoreOptions) ...[
                     Align(
                       alignment: Alignment.centerLeft,
@@ -781,7 +723,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ],
                   const SizedBox(height: 12),
 
-                  // 7. BATCH ENTRY TOGGLE
+                  // 8. BATCH ENTRY TOGGLE
                   if (widget.editTransaction == null)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

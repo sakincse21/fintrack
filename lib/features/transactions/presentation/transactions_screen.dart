@@ -690,25 +690,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 ),
                               ),
                             ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${isIncome ? '+' : isTransfer ? '' : '-'}${CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 15.5,
-                                    color: amountColor,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                if (tx.receiptPath != null)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 3),
-                                    child: Icon(LucideIcons.paperclip, size: 13, color: AppColors.primary),
-                                  ),
-                              ],
+                            trailing: Text(
+                              '${isIncome ? '+' : isTransfer ? '' : '-'}${CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15.5,
+                                color: amountColor,
+                                letterSpacing: -0.3,
+                              ),
                             ),
                           ),
                         ),

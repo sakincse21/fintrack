@@ -7,6 +7,8 @@ import '../../../core/constants/default_categories.dart';
 import '../../../core/database/database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../dashboard/presentation/widgets/safe_to_spend_card.dart';
+import '../../milestones/providers/milestones_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/budgets_provider.dart';
 
@@ -223,30 +225,37 @@ class BudgetsScreen extends ConsumerWidget {
             child: budgetsAsync.when(
               data: (budgets) {
                 if (budgets.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.tune, size: 60, color: Colors.grey.withValues(alpha: 0.4)),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No budgets set for this month',
-                          style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const SafeToSpendCard(isBudgetsScreen: true),
+                      const SizedBox(height: 36),
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.tune, size: 60, color: Colors.grey.withValues(alpha: 0.4)),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No budgets set for this month',
+                              style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Set category spending limits to keep your expenses on track',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () => _showAddEditBudgetDialog(context, ref),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Create Category Budget'),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Set category spending limits to keep your expenses on track',
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: () => _showAddEditBudgetDialog(context, ref),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Create Category Budget'),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 }
 
@@ -260,9 +269,21 @@ class BudgetsScreen extends ConsumerWidget {
                 final totalRemaining = totalBudgeted - totalSpent;
                 final totalProgress = totalBudgeted > 0 ? (totalSpent / totalBudgeted).clamp(0.0, 1.0) : 0.0;
 
+                // Check budget_under_month_1 milestone if past month was under budget
+                if (selectedMonth.isBefore(DateTime(DateTime.now().year, DateTime.now().month, 1)) &&
+                    budgets.isNotEmpty &&
+                    totalSpent <= totalBudgeted) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    ref.read(milestoneProvider.notifier).triggerMilestone('budget_under_month_1');
+                  });
+                }
+
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    const SafeToSpendCard(isBudgetsScreen: true),
+                    const SizedBox(height: 14),
+
                     // Overall Budget Header Card
                     Card(
                       child: Padding(
