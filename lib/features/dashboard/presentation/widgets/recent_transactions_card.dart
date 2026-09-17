@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/default_categories.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/date_utils.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../transactions/presentation/widgets/transaction_detail_dialog.dart';
 import '../../../transactions/providers/transactions_provider.dart';
@@ -189,21 +189,35 @@ class RecentTransactionsCard extends ConsumerWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          '${AppDateUtils.formatRelative(tx.date)} • ${account.name}',
+                          '${DateFormat('MMM d, h:mm a').format(tx.date)} • ${account.name}',
                           style: TextStyle(
                             fontSize: 12.5,
                             color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                           ),
                         ),
                       ),
-                      trailing: Text(
-                        '${isIncome ? '+' : isTransfer ? '' : '-'}${CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15.5,
-                          color: amountColor,
-                          letterSpacing: -0.3,
-                        ),
+                      trailing: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${isIncome ? '+' : isTransfer ? '' : '-'}${CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15.5,
+                              color: amountColor,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            DateFormat('h:mm a').format(tx.date),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

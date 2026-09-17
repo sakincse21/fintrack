@@ -26,6 +26,7 @@ import 'package:fintrack/features/transactions/providers/transactions_provider.d
 import 'package:fintrack/features/streaks/presentation/widgets/streak_detail_sheet.dart';
 import 'package:fintrack/features/subscriptions/presentation/subscriptions_screen.dart';
 import 'package:fintrack/features/transactions/presentation/widgets/transaction_detail_dialog.dart';
+import 'package:fintrack/features/transactions/presentation/transactions_screen.dart';
 
 void main() {
   group('CurrencyFormatter Tests', () {
@@ -240,7 +241,11 @@ void main() {
       expect(find.byType(QuickAddSheet), findsOneWidget);
     });
 
-    testWidgets('QuickAddSheet renders scrollable category row and separate full-width Account and Date rows', (WidgetTester tester) async {
+    testWidgets('QuickAddSheet renders segmented type selector, category pills, details card, and keypad', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -267,13 +272,39 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Category section is present with Manage action
-      expect(find.text('Category'), findsOneWidget);
-      expect(find.text('Manage'), findsOneWidget);
+      // Segmented control options
+      expect(find.text('Expense'), findsOneWidget);
+      expect(find.text('Income'), findsOneWidget);
+      expect(find.text('Transfer'), findsOneWidget);
 
-      // Separate Account and Date labels are present
+      // Category section is present with Add New action (replacing Manage)
+      expect(find.text('CATEGORY'), findsOneWidget);
+      expect(find.text('Add New'), findsWidgets);
+
+      // Details card rows are present
       expect(find.text('Account'), findsOneWidget);
-      expect(find.text('Date'), findsOneWidget);
+      expect(find.text('Date & Time'), findsOneWidget);
+      expect(find.text('Note'), findsOneWidget);
+
+      // Smart Quick Entry is present, Voice option is removed
+      expect(find.text('Smart Quick Entry'), findsOneWidget);
+      expect(find.text('Voice'), findsNothing);
+
+      // Custom numeric keypad keys are present
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('9'), findsOneWidget);
+      expect(find.text('.'), findsOneWidget);
+
+      // Initial CTA button state when amount is 0
+      expect(find.text('Enter an amount'), findsOneWidget);
+
+      // Tapping keypad updates hero amount and button state
+      await tester.tap(find.text('5'));
+      await tester.pump();
+      await tester.tap(find.text('0'));
+      await tester.pump();
+      expect(find.text('Save Expense'), findsOneWidget);
     });
 
     testWidgets('CategoryManagerScreen renders with tabs and Add button', (WidgetTester tester) async {
@@ -888,6 +919,118 @@ void main() {
       expect(find.text('Checking Account'), findsOneWidget);
       expect(find.text('Attached Receipt:'), findsNothing);
       expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('TransactionsScreen renders Activity header, quick filter pills, date groups, and REPEATS badge', (tester) async {
+      final now = DateTime.now();
+      final item1 = TransactionWithDetails(
+        transaction: TransactionItem(
+          id: 1,
+          accountId: 1,
+          categoryId: 10,
+          amountCents: 3500,
+          type: 'expense',
+          note: 'Blue Bottle Coffee',
+          date: now,
+          tagIds: '',
+          receiptPath: null,
+          isRecurring: false,
+          recurringId: null,
+          toAccountId: null,
+          createdAt: now,
+          deletedAt: null,
+        ),
+        category: const Category(
+          id: 10,
+          name: 'Dining',
+          type: 'expense',
+          icon: 'coffee',
+          colorValue: 0xFFEF4444,
+          parentId: null,
+          isDefault: true,
+        ),
+        account: const Account(
+          id: 1,
+          name: 'Amex···3009',
+          type: 'bank',
+          initialBalanceCents: 100000,
+          currency: 'USD',
+          icon: 'credit_card',
+          isArchived: false,
+        ),
+      );
+
+      final item2 = TransactionWithDetails(
+        transaction: TransactionItem(
+          id: 2,
+          accountId: 1,
+          categoryId: 11,
+          amountCents: 1500,
+          type: 'expense',
+          note: 'Figma',
+          date: now,
+          tagIds: '',
+          receiptPath: null,
+          isRecurring: true,
+          recurringId: 1,
+          toAccountId: null,
+          createdAt: now,
+          deletedAt: null,
+        ),
+        category: const Category(
+          id: 11,
+          name: 'Subscriptions',
+          type: 'expense',
+          icon: 'refresh_cw',
+          colorValue: 0xFF3B82F6,
+          parentId: null,
+          isDefault: true,
+        ),
+        account: const Account(
+          id: 1,
+          name: 'Amex···3009',
+          type: 'bank',
+          initialBalanceCents: 100000,
+          currency: 'USD',
+          icon: 'credit_card',
+          isArchived: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            filteredTransactionsProvider.overrideWith((ref) => Stream.value([item1, item2])),
+            accountsListProvider.overrideWith((ref) => Stream.value([])),
+            categoriesListFilterProvider.overrideWith((ref) => Stream.value([])),
+          ],
+          child: const MaterialApp(
+            home: TransactionsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Activity title and records count badge
+      expect(find.text('Activity'), findsOneWidget);
+      expect(find.text('2 records'), findsAtLeast(1));
+
+      // Search bar hint
+      expect(find.text('Search merchants, notes, amounts'), findsOneWidget);
+
+      // Quick filter pills
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Expenses'), findsOneWidget);
+      expect(find.text('Income'), findsOneWidget);
+      expect(find.text('Recurring'), findsOneWidget);
+
+      // Date group header
+      expect(find.text('TODAY'), findsOneWidget);
+
+      // Transactions
+      expect(find.text('Blue Bottle Coffee'), findsOneWidget);
+      expect(find.text('Figma'), findsOneWidget);
+      expect(find.text('REPEATS'), findsOneWidget);
     });
   });
 }
