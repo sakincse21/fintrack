@@ -2,17 +2,19 @@
 """
 FinTrack - Google Play Store Screenshot Generator
 Generates high-converting, compliant 1080x1920 (16:9) Play Store screenshots
-with modern device framing, glow effects, and marketing copy.
+from phone mockup screenshots, complete with feature badges, typography,
+and ambient glow effects.
 """
 
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import numpy as np
+from scipy import ndimage
 
 CANVAS_WIDTH = 1080
 CANVAS_HEIGHT = 1920
 
-# Font paths with fallbacks
 def get_font(weight="bold", size=48):
     font_map = {
         "extrabold": [
@@ -68,16 +70,42 @@ def wrap_text(text, font, max_width):
         lines.append(" ".join(curr))
     return lines
 
+def extract_phone_mockup(img_path):
+    """
+    Isolates the phone mockup from the white border using connected-component
+    labeling so that inner white elements (like buttons or cards) are preserved.
+    """
+    img = Image.open(img_path).convert("RGBA")
+    arr = np.array(img)
+    rgb = arr[:, :, :3]
+    
+    # Check if border is white
+    is_white = np.all(rgb > 250, axis=2)
+    lbl, _ = ndimage.label(is_white)
+    bg_mask = (lbl == lbl[0, 0])
+    
+    # Set background to transparent
+    arr[bg_mask, 3] = 0
+    phone_img = Image.fromarray(arr)
+    
+    # Find bounding box of non-transparent phone
+    mask = (arr[:, :, 3] > 0)
+    rows = np.any(mask, axis=1)
+    cols = np.any(mask, axis=0)
+    if np.any(rows) and np.any(cols):
+        ymin, ymax = np.where(rows)[0][[0, -1]]
+        xmin, xmax = np.where(cols)[0][[0, -1]]
+        return phone_img.crop((xmin, ymin, xmax + 1, ymax + 1))
+    return phone_img
+
 def render_play_store_screenshot(
-    raw_img_path,
+    mockup_img_path,
     output_path,
     tag,
     title,
     subtitle,
     accent_color,
     glow_color,
-    crop_top=105,
-    crop_bottom=55,
 ):
     print(f"Generating: {os.path.basename(output_path)} ...")
     
@@ -87,10 +115,10 @@ def render_play_store_screenshot(
     # 2. Ambient Radial Glow behind Phone
     glow = Image.new("RGBA", (CANVAS_WIDTH, CANVAS_HEIGHT), (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow)
-    cx, cy = CANVAS_WIDTH // 2, 1120
+    cx, cy = CANVAS_WIDTH // 2, 1100
     glow_radius = 580
     for r in range(glow_radius, 0, -8):
-        alpha = int(42 * (1.0 - (r / glow_radius) ** 1.3))
+        alpha = int(44 * (1.0 - (r / glow_radius) ** 1.3))
         glow_draw.ellipse(
             (cx - r, cy - r, cx + r, cy + r),
             fill=(glow_color[0], glow_color[1], glow_color[2], alpha),
@@ -106,7 +134,7 @@ def render_play_store_screenshot(
     tag_h = tag_bbox[3] - tag_bbox[1]
 
     tag_x = (CANVAS_WIDTH - tag_w) // 2
-    tag_y = 80
+    tag_y = 75
     pad_h, pad_v = 22, 9
 
     pill_rect = (
@@ -140,7 +168,7 @@ def render_play_store_screenshot(
     f_sub = get_font("medium", 24)
     sub_lines = wrap_text(subtitle, f_sub, CANVAS_WIDTH - 160)
 
-    sub_y = title_y + 8
+    sub_y = title_y + 6
     for sline in sub_lines:
         s_bbox = f_sub.getbbox(sline)
         sw = s_bbox[2] - s_bbox[0]
@@ -148,66 +176,27 @@ def render_play_store_screenshot(
         draw.text((sx, sub_y), sline, font=f_sub, fill=(160, 174, 192, 255))
         sub_y += (s_bbox[3] - s_bbox[1]) + 8
 
-    # 6. Device Mockup Frame (Fully framed)
-    raw = Image.open(raw_img_path).convert("RGBA")
-    cropped = raw.crop((0, crop_top, raw.width, raw.height - crop_bottom))
-
-    phone_w = 710
-    aspect = cropped.height / cropped.width
-    bezel = 12
-    screen_w = phone_w - (bezel * 2)
-    screen_h = int(screen_w * aspect)
-    phone_h = screen_h + (bezel * 2)
-
+    # 6. Phone Mockup Placement
+    phone = extract_phone_mockup(mockup_img_path)
+    
+    phone_w = 724
+    aspect = phone.height / phone.width
+    phone_h = int(phone_w * aspect)
+    
+    resized_phone = phone.resize((phone_w, phone_h), Image.Resampling.LANCZOS)
     phone_x = (CANVAS_WIDTH - phone_w) // 2
-    phone_y = sub_y + 36
+    phone_y = sub_y + 32
 
-    resized_screen = cropped.resize((screen_w, screen_h), Image.Resampling.LANCZOS)
+    # Soft Drop Shadow under phone
+    shadow_pad = 40
+    s_layer = Image.new("RGBA", (phone_w + shadow_pad * 2, phone_h + shadow_pad * 2), (0, 0, 0, 0))
+    phone_alpha = resized_phone.split()[3]
+    s_layer.paste((0, 0, 0, 160), (shadow_pad, shadow_pad + 14), phone_alpha)
+    s_layer = s_layer.filter(ImageFilter.GaussianBlur(28))
+    canvas.paste(s_layer, (phone_x - shadow_pad, phone_y - shadow_pad), s_layer)
 
-    # Rounded Corner Screen Mask
-    screen_mask = Image.new("L", (screen_w, screen_h), 0)
-    mask_draw = ImageDraw.Draw(screen_mask)
-    mask_draw.rounded_rectangle((0, 0, screen_w, screen_h), radius=36, fill=255)
-
-    # Soft Drop Shadow Layer
-    shadow_pad = 50
-    shadow_img = Image.new(
-        "RGBA",
-        (phone_w + shadow_pad * 2, phone_h + shadow_pad * 2),
-        (0, 0, 0, 0),
-    )
-    s_draw = ImageDraw.Draw(shadow_img)
-    s_draw.rounded_rectangle(
-        (shadow_pad, shadow_pad + 12, shadow_pad + phone_w, shadow_pad + phone_h + 12),
-        radius=46,
-        fill=(0, 0, 0, 150),
-    )
-    shadow_img = shadow_img.filter(ImageFilter.GaussianBlur(32))
-    canvas.paste(shadow_img, (phone_x - shadow_pad, phone_y - shadow_pad), shadow_img)
-
-    # Titanium Phone Bezel
-    phone_body = Image.new("RGBA", (phone_w, phone_h), (0, 0, 0, 0))
-    pb_draw = ImageDraw.Draw(phone_body)
-    pb_draw.rounded_rectangle(
-        (0, 0, phone_w, phone_h),
-        radius=46,
-        fill=(26, 30, 42, 255),
-        outline=(58, 68, 86, 255),
-        width=2,
-    )
-
-    # Paste the clipped screen inside bezel
-    phone_body.paste(resized_screen, (bezel, bezel), screen_mask)
-
-    # Subtle inner border
-    pb_draw.rounded_rectangle(
-        (bezel, bezel, bezel + screen_w, bezel + screen_h),
-        radius=36,
-        outline=(0, 0, 0, 40),
-        width=1,
-    )
-
-    canvas.paste(phone_body, (phone_x, phone_y), phone_body)
+    # Paste phone mockup
+    canvas.paste(resized_phone, (phone_x, phone_y), resized_phone)
 
     # Convert to 24-bit RGB (strict Google Play requirement: no alpha)
     final_rgb = canvas.convert("RGB")
@@ -222,7 +211,7 @@ def main():
 
     configs = [
         {
-            "raw": "home.png",
+            "raw": "home.PNG",
             "out": "01_dashboard.png",
             "tag": "SMART DASHBOARD",
             "title": "All Your Finances in One Place",
@@ -231,16 +220,16 @@ def main():
             "glow": (255, 87, 34),
         },
         {
-            "raw": "add_transactions.png",
+            "raw": "add_transaction.PNG",
             "out": "02_quick_add.png",
             "tag": "LIGHTNING FAST",
             "title": "Instant Transaction Entry",
-            "subtitle": "Built-in numeric keypad with smart auto-categorization",
+            "subtitle": "Smart quick entry, built-in keypad & auto-categorization",
             "accent": (129, 140, 248),
             "glow": (99, 102, 241),
         },
         {
-            "raw": "activity.png",
+            "raw": "activity.PNG",
             "out": "03_activity.png",
             "tag": "TRANSACTION HISTORY",
             "title": "Organized Activity Log",
@@ -249,7 +238,7 @@ def main():
             "glow": (16, 185, 129),
         },
         {
-            "raw": "budgets.png",
+            "raw": "budgets.PNG",
             "out": "04_budgets.png",
             "tag": "SMART BUDGETING",
             "title": "Safe-to-Spend & Budgets",
@@ -258,7 +247,7 @@ def main():
             "glow": (20, 184, 166),
         },
         {
-            "raw": "statistics.png",
+            "raw": "statistics.PNG",
             "out": "05_statistics.png",
             "tag": "VISUAL ANALYTICS",
             "title": "Deep Spending Insights",
@@ -267,17 +256,8 @@ def main():
             "glow": (59, 130, 246),
         },
         {
-            "raw": "settings.png",
-            "out": "06_settings.png",
-            "tag": "PRIVATE & OFFLINE-FIRST",
-            "title": "Full Control & Security",
-            "subtitle": "Multi-currency, savings goals & encrypted offline backups",
-            "accent": (251, 191, 36),
-            "glow": (245, 158, 11),
-        },
-        {
-            "raw": "splash.png",
-            "out": "07_branding.png",
+            "raw": "splash.PNG",
+            "out": "06_branding.png",
             "tag": "PERSONAL FINANCE",
             "title": "FinTrack: Master Your Money",
             "subtitle": "Simple, private, and powerful financial tracking for Android",
@@ -291,7 +271,7 @@ def main():
         raw_path = os.path.join(sc_dir, cfg["raw"])
         out_path = os.path.join(out_dir, cfg["out"])
         if not os.path.exists(raw_path):
-            print(f"Warning: Raw screenshot not found: {raw_path}")
+            print(f"Warning: Mockup screenshot not found: {raw_path}")
             continue
         render_play_store_screenshot(
             raw_path,
@@ -303,15 +283,14 @@ def main():
             cfg["glow"],
         )
 
-    # Clean up test artifacts in play_store if present
-    for old in ["01_dashboard_full.png"]:
-        old_p = os.path.join(out_dir, old)
-        if os.path.exists(old_p):
-            os.remove(old_p)
+    # Clean up obsolete files if present
+    for obsolete in ["06_settings.png", "07_branding.png", "01_dashboard_full.png"]:
+        obsolete_p = os.path.join(out_dir, obsolete)
+        if os.path.exists(obsolete_p):
+            os.remove(obsolete_p)
 
     print("\nAll Google Play Store screenshots generated successfully!")
     print(f"Location: {out_dir}")
 
 if __name__ == "__main__":
     main()
-

@@ -29,7 +29,7 @@
 <p align="center">
   <img src="screenshots/play_store/04_budgets.png" width="31%" alt="FinTrack Safe-to-Spend & Budgets" />
   <img src="screenshots/play_store/05_statistics.png" width="31%" alt="FinTrack Analytics & Insights" />
-  <img src="screenshots/play_store/06_settings.png" width="31%" alt="FinTrack Full Control & Privacy" />
+  <img src="screenshots/play_store/06_branding.png" width="31%" alt="FinTrack Brand & Identity" />
 </p>
 
 ---
