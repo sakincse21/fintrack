@@ -15,6 +15,7 @@ import 'widgets/category_donut_card.dart';
 import 'widgets/recent_transactions_card.dart';
 import 'widgets/subscriptions_glance_card.dart';
 import 'widgets/upcoming_bills_card.dart';
+import '../../loans/presentation/widgets/loan_summary_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -156,7 +157,10 @@ class DashboardScreen extends ConsumerWidget {
                 const BudgetGlanceCard(),
                 const SizedBox(height: 16),
 
-                // 8. Recent Transactions List
+                // 8. Dues & Debts Glance
+                const LoanSummaryCard(),
+
+                // 9. Recent Transactions List
                 const RecentTransactionsCard(),
                 const SizedBox(height: 36),
               ],

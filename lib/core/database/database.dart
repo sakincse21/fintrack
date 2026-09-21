@@ -113,6 +113,38 @@ class MilestonesAchieved extends Table {
   TextColumn get achievedAt => text()(); // ISO timestamp
 }
 
+@DataClassName('Person')
+class People extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get phone => text().nullable().withLength(max: 20)();
+}
+
+@DataClassName('Loan')
+class Loans extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get personId => integer().references(People, #id)();
+  TextColumn get type => text().withLength(min: 1, max: 20)(); // 'lent' or 'borrowed'
+  IntColumn get amountCents => integer()();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get dueDate => dateTime().nullable()();
+  TextColumn get reminderOption => text().withDefault(const Constant('none'))(); // none, 1_day, 3_days, 1_week, 2_weeks, 1_month
+  TextColumn get note => text().nullable().withLength(max: 500)();
+  BoolColumn get isSettled => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get settledAt => dateTime().nullable()();
+}
+
+@DataClassName('LoanPayment')
+class LoanPayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get loanId => integer().references(Loans, #id)();
+  IntColumn get amountCents => integer()();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  DateTimeColumn get paidAt => dateTime()();
+  TextColumn get note => text().nullable().withLength(max: 500)();
+}
+
 // Joined transaction model for easy UI consumption
 class TransactionWithDetails {
   final TransactionItem transaction;
@@ -159,6 +191,54 @@ class CategoryWithCount {
   });
 }
 
+// Joined Loan model for easy UI consumption
+class LoanWithDetails {
+  final Loan loan;
+  final Person person;
+  final Account account;
+  final int paidAmountCents;
+
+  LoanWithDetails({
+    required this.loan,
+    required this.person,
+    required this.account,
+    required this.paidAmountCents,
+  });
+
+  double get progressPercent =>
+      loan.amountCents > 0 ? (paidAmountCents / loan.amountCents).clamp(0.0, 1.0) : 0.0;
+
+  int get remainingCents => loan.amountCents - paidAmountCents;
+
+  bool get isOverdue =>
+      loan.dueDate != null && DateTime.now().isAfter(loan.dueDate!) && !loan.isSettled;
+
+  String get typeLabel => loan.type == 'lent' ? 'Money Given' : 'Money Received';
+
+  bool get isFullyPaid => paidAmountCents >= loan.amountCents;
+}
+
+// Aggregated loan summary for dashboard card
+class LoanSummary {
+  final int totalLentCents;
+  final int totalBorrowedCents;
+  final int activeLentCount;
+  final int activeBorrowedCount;
+  final int overdueCount;
+
+  LoanSummary({
+    required this.totalLentCents,
+    required this.totalBorrowedCents,
+    required this.activeLentCount,
+    required this.activeBorrowedCount,
+    required this.overdueCount,
+  });
+
+  int get netPositionCents => totalLentCents - totalBorrowedCents;
+  int get totalActiveCount => activeLentCount + activeBorrowedCount;
+  bool get hasActiveLoans => totalActiveCount > 0;
+}
+
 @DriftDatabase(tables: [
   Accounts,
   Categories,
@@ -170,13 +250,16 @@ class CategoryWithCount {
   MerchantRules,
   StreakStates,
   MilestonesAchieved,
+  People,
+  Loans,
+  LoanPayments,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'fintrack_db');
@@ -194,6 +277,11 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(milestonesAchieved);
             await m.addColumn(recurringRules, recurringRules.isSubscription);
           }
+          if (from < 3) {
+            await m.createTable(people);
+            await m.createTable(loans);
+            await m.createTable(loanPayments);
+          }
         },
         beforeOpen: (details) async {
           // Create high-performance indices for sub-millisecond filtering and reports
@@ -202,11 +290,17 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_to_account ON transactions(to_account_id, deleted_at);');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id, deleted_at);');
           await customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type, deleted_at);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_loans_person ON loans(person_id, is_settled);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_loans_settled ON loans(is_settled);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_loan_payments_loan ON loan_payments(loan_id);');
           await customStatement('PRAGMA foreign_keys = ON;');
 
           // Fallback schema safety
           await customStatement('CREATE TABLE IF NOT EXISTS streak_states (id INTEGER PRIMARY KEY AUTOINCREMENT, current_streak INTEGER NOT NULL DEFAULT 0, longest_streak INTEGER NOT NULL DEFAULT 0, last_logged_date TEXT, grace_misses_used INTEGER NOT NULL DEFAULT 0, grace_misses_month TEXT, freeze_available INTEGER NOT NULL DEFAULT 2);');
           await customStatement('CREATE TABLE IF NOT EXISTS milestones_achieved (id INTEGER PRIMARY KEY AUTOINCREMENT, milestone_key TEXT NOT NULL UNIQUE, achieved_at TEXT NOT NULL);');
+          await customStatement('CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, phone TEXT);');
+          await customStatement('CREATE TABLE IF NOT EXISTS loans (id INTEGER PRIMARY KEY AUTOINCREMENT, person_id INTEGER NOT NULL REFERENCES people(id), type TEXT NOT NULL, amount_cents INTEGER NOT NULL, account_id INTEGER NOT NULL REFERENCES accounts(id), created_at INTEGER NOT NULL, due_date INTEGER, reminder_option TEXT NOT NULL DEFAULT \'none\', note TEXT, is_settled INTEGER NOT NULL DEFAULT 0, settled_at INTEGER);');
+          await customStatement('CREATE TABLE IF NOT EXISTS loan_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, loan_id INTEGER NOT NULL REFERENCES loans(id), amount_cents INTEGER NOT NULL, account_id INTEGER NOT NULL REFERENCES accounts(id), paid_at INTEGER NOT NULL, note TEXT);');
           try {
             await customStatement('ALTER TABLE recurring_rules ADD COLUMN is_subscription INTEGER NOT NULL DEFAULT 0;');
           } catch (_) {}
@@ -774,6 +868,288 @@ class AppDatabase extends _$AppDatabase {
       isActive: Value(isActive),
       endDate: Value(isActive ? null : DateTime.now()),
     ));
+  }
+
+  // --- Loans / Dues & Debts ---
+
+  Stream<List<Person>> watchAllPeople() => select(people).watch();
+
+  Future<List<Person>> getAllPeople() => select(people).get();
+
+  Future<int> insertPerson(PeopleCompanion person) =>
+      into(people).insert(person);
+
+  Future<int> updatePerson(int id, PeopleCompanion companion) =>
+      (update(people)..where((p) => p.id.equals(id))).write(companion);
+
+  /// Watches all loans (optionally filtered by settled status) joined with Person + Account + paid amount
+  Stream<List<LoanWithDetails>> watchLoansWithDetails({bool? settled}) {
+    final query = select(loans).join([
+      innerJoin(people, people.id.equalsExp(loans.personId)),
+      innerJoin(accounts, accounts.id.equalsExp(loans.accountId)),
+    ]);
+
+    if (settled != null) {
+      query.where(loans.isSettled.equals(settled));
+    }
+
+    query.orderBy([OrderingTerm.desc(loans.createdAt)]);
+
+    return query.watch().asyncMap((rows) async {
+      final List<LoanWithDetails> result = [];
+      for (final row in rows) {
+        final loan = row.readTable(loans);
+        final person = row.readTable(people);
+        final account = row.readTable(accounts);
+
+        // Sum paid amount for this loan
+        final paidRow = await customSelect(
+          'SELECT COALESCE(SUM(amount_cents), 0) AS paid FROM loan_payments WHERE loan_id = ?',
+          variables: [Variable.withInt(loan.id)],
+          readsFrom: {loanPayments},
+        ).getSingle();
+        final paid = paidRow.read<int>('paid');
+
+        result.add(LoanWithDetails(
+          loan: loan,
+          person: person,
+          account: account,
+          paidAmountCents: paid,
+        ));
+      }
+      return result;
+    });
+  }
+
+  /// Get a single loan with details
+  Future<LoanWithDetails?> getLoanWithDetails(int loanId) async {
+    final query = select(loans).join([
+      innerJoin(people, people.id.equalsExp(loans.personId)),
+      innerJoin(accounts, accounts.id.equalsExp(loans.accountId)),
+    ])..where(loans.id.equals(loanId));
+
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+
+    final loan = row.readTable(loans);
+    final person = row.readTable(people);
+    final account = row.readTable(accounts);
+
+    final paidRow = await customSelect(
+      'SELECT COALESCE(SUM(amount_cents), 0) AS paid FROM loan_payments WHERE loan_id = ?',
+      variables: [Variable.withInt(loan.id)],
+      readsFrom: {loanPayments},
+    ).getSingle();
+    final paid = paidRow.read<int>('paid');
+
+    return LoanWithDetails(
+      loan: loan,
+      person: person,
+      account: account,
+      paidAmountCents: paid,
+    );
+  }
+
+  /// Watch payments for a specific loan
+  Stream<List<LoanPayment>> watchLoanPayments(int loanId) {
+    return (select(loanPayments)
+          ..where((p) => p.loanId.equals(loanId))
+          ..orderBy([(p) => OrderingTerm.desc(p.paidAt)]))
+        .watch();
+  }
+
+  /// Insert a new loan and optionally create a corresponding transaction
+  Future<int> insertLoan(LoansCompanion loan, {bool createTransaction = true}) async {
+    final loanId = await into(loans).insert(loan);
+
+    if (createTransaction) {
+      final loanType = loan.type.value;
+      final txType = loanType == 'lent' ? 'expense' : 'income';
+
+      await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: loan.accountId.value,
+          amountCents: loan.amountCents.value,
+          type: txType,
+          note: Value('Loan: ${loanType == 'lent' ? 'Money Given' : 'Money Received'}'),
+          date: loan.createdAt.value,
+        ),
+      );
+    }
+
+    return loanId;
+  }
+
+  /// Record a loan payment and create a corresponding transaction
+  Future<int> insertLoanPayment(LoanPaymentsCompanion payment, {bool createTransaction = true}) async {
+    final paymentId = await into(loanPayments).insert(payment);
+
+    // Get the loan to determine transaction type
+    final loan = await (select(loans)..where((l) => l.id.equals(payment.loanId.value))).getSingle();
+
+    if (createTransaction) {
+      // Create corresponding transaction (reverse of original: lent -> income when returned, borrowed -> expense when returning)
+      final txType = loan.type == 'lent' ? 'income' : 'expense';
+      final defaultNote = 'Loan repayment: ${loan.type == 'lent' ? 'Money Returned' : 'Debt Repaid'}';
+      final txNote = payment.note.present && payment.note.value != null && payment.note.value!.isNotEmpty
+          ? payment.note.value!
+          : defaultNote;
+      await into(transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: payment.accountId.value,
+          amountCents: payment.amountCents.value,
+          type: txType,
+          note: Value(txNote),
+          date: payment.paidAt.value,
+        ),
+      );
+    }
+
+    // Check if fully paid -> auto-settle
+    final paidRow = await customSelect(
+      'SELECT COALESCE(SUM(amount_cents), 0) AS paid FROM loan_payments WHERE loan_id = ?',
+      variables: [Variable.withInt(loan.id)],
+      readsFrom: {loanPayments},
+    ).getSingle();
+    final totalPaid = paidRow.read<int>('paid');
+
+    if (totalPaid >= loan.amountCents) {
+      await (update(loans)..where((l) => l.id.equals(loan.id))).write(
+        LoansCompanion(
+          isSettled: const Value(true),
+          settledAt: Value(DateTime.now()),
+        ),
+      );
+    }
+
+    return paymentId;
+  }
+
+  /// Manually settle a loan (e.g. forgiveness)
+  Future<void> settleLoan(int loanId) async {
+    await (update(loans)..where((l) => l.id.equals(loanId))).write(
+      LoansCompanion(
+        isSettled: const Value(true),
+        settledAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Reopen a settled loan
+  Future<void> reopenLoan(int loanId) async {
+    await (update(loans)..where((l) => l.id.equals(loanId))).write(
+      const LoansCompanion(
+        isSettled: Value(false),
+        settledAt: Value(null),
+      ),
+    );
+  }
+
+  /// Delete a loan and all its payments
+  Future<void> deleteLoan(int loanId) async {
+    await (delete(loanPayments)..where((p) => p.loanId.equals(loanId))).go();
+    await (delete(loans)..where((l) => l.id.equals(loanId))).go();
+  }
+
+  /// Get aggregated loan summary for dashboard
+  Future<LoanSummary> getLoanSummary() async {
+    final activeLoans = await (select(loans)..where((l) => l.isSettled.equals(false))).get();
+
+    int totalLent = 0, totalBorrowed = 0;
+    int lentCount = 0, borrowedCount = 0;
+    int overdueCount = 0;
+    final now = DateTime.now();
+
+    for (final loan in activeLoans) {
+      // Get paid amount
+      final paidRow = await customSelect(
+        'SELECT COALESCE(SUM(amount_cents), 0) AS paid FROM loan_payments WHERE loan_id = ?',
+        variables: [Variable.withInt(loan.id)],
+        readsFrom: {loanPayments},
+      ).getSingle();
+      final paid = paidRow.read<int>('paid');
+      final remaining = loan.amountCents - paid;
+
+      if (loan.type == 'lent') {
+        totalLent += remaining;
+        lentCount++;
+      } else {
+        totalBorrowed += remaining;
+        borrowedCount++;
+      }
+
+      if (loan.dueDate != null && now.isAfter(loan.dueDate!)) {
+        overdueCount++;
+      }
+    }
+
+    return LoanSummary(
+      totalLentCents: totalLent,
+      totalBorrowedCents: totalBorrowed,
+      activeLentCount: lentCount,
+      activeBorrowedCount: borrowedCount,
+      overdueCount: overdueCount,
+    );
+  }
+
+  /// Watch loan summary reactively
+  Stream<LoanSummary> watchLoanSummary() {
+    // Watch both loans and payments tables for changes
+    return (select(loans)).watch().asyncMap((_) => getLoanSummary());
+  }
+
+  /// Get loans with due dates needing reminders
+  Future<List<LoanWithDetails>> getLoansNeedingReminder() async {
+    final now = DateTime.now();
+    final activeLoans = await (select(loans).join([
+      innerJoin(people, people.id.equalsExp(loans.personId)),
+      innerJoin(accounts, accounts.id.equalsExp(loans.accountId)),
+    ])
+          ..where(loans.isSettled.equals(false) &
+              loans.dueDate.isNotNull() &
+              loans.reminderOption.equals('none').not()))
+        .get();
+
+    final List<LoanWithDetails> result = [];
+    for (final row in activeLoans) {
+      final loan = row.readTable(loans);
+      final dueDate = loan.dueDate!;
+      final reminderOffset = _getReminderOffset(loan.reminderOption);
+      final reminderDate = dueDate.subtract(reminderOffset);
+
+      if (now.isAfter(reminderDate) || now.isAtSameMomentAs(reminderDate)) {
+        final paidRow = await customSelect(
+          'SELECT COALESCE(SUM(amount_cents), 0) AS paid FROM loan_payments WHERE loan_id = ?',
+          variables: [Variable.withInt(loan.id)],
+          readsFrom: {loanPayments},
+        ).getSingle();
+
+        result.add(LoanWithDetails(
+          loan: loan,
+          person: row.readTable(people),
+          account: row.readTable(accounts),
+          paidAmountCents: paidRow.read<int>('paid'),
+        ));
+      }
+    }
+    return result;
+  }
+
+  Duration _getReminderOffset(String option) {
+    switch (option) {
+      case '1_day':
+        return const Duration(days: 1);
+      case '3_days':
+        return const Duration(days: 3);
+      case '1_week':
+        return const Duration(days: 7);
+      case '2_weeks':
+        return const Duration(days: 14);
+      case '1_month':
+        return const Duration(days: 30);
+      default:
+        return Duration.zero;
+    }
   }
 }
 

@@ -58,9 +58,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
               label: 'Stats',
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.target, size: 23),
-              selectedIcon: Icon(LucideIcons.target, color: AppColors.primary, size: 23),
-              label: 'Budgets',
+              icon: Icon(LucideIcons.handshake, size: 23),
+              selectedIcon: Icon(LucideIcons.handshake, color: AppColors.primary, size: 23),
+              label: 'Dues',
             ),
             NavigationDestination(
               icon: Icon(LucideIcons.slidersHorizontal, size: 23),

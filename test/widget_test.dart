@@ -1033,6 +1033,109 @@ void main() {
       expect(find.text('REPEATS'), findsOneWidget);
     });
   });
+
+  group('Dues and Loans Deduction Tests', () {
+    test('LoanWithDetails correctly calculates remaining and progress', () {
+      final loan = Loan(
+        id: 1,
+        personId: 10,
+        type: 'lent',
+        amountCents: 10000,
+        accountId: 1,
+        createdAt: DateTime.now(),
+        dueDate: null,
+        reminderOption: 'none',
+        note: 'Lunch loan',
+        isSettled: false,
+        settledAt: null,
+      );
+      final person = Person(id: 10, name: 'Alice', phone: '123456');
+      final account = Account(
+        id: 1,
+        name: 'Cash',
+        type: 'cash',
+        initialBalanceCents: 50000,
+        currency: 'USD',
+        icon: 'wallet',
+        isArchived: false,
+      );
+
+      final loanDetails = LoanWithDetails(
+        loan: loan,
+        person: person,
+        account: account,
+        paidAmountCents: 4000,
+      );
+
+      expect(loanDetails.remainingCents, 6000);
+      expect(loanDetails.progressPercent, 0.4);
+      expect(loanDetails.isFullyPaid, isFalse);
+      expect(loanDetails.typeLabel, 'Money Given');
+    });
+
+    test('LoanSummary aggregates net position and counts correctly', () {
+      final summary = LoanSummary(
+        totalLentCents: 15000,
+        totalBorrowedCents: 5000,
+        activeLentCount: 2,
+        activeBorrowedCount: 1,
+        overdueCount: 0,
+      );
+
+      expect(summary.netPositionCents, 10000);
+      expect(summary.totalActiveCount, 3);
+      expect(summary.hasActiveLoans, isTrue);
+    });
+
+    test('Borrowed loan correctly calculates remaining debt and auto-settle threshold', () {
+      final borrowedLoan = Loan(
+        id: 2,
+        personId: 11,
+        type: 'borrowed',
+        amountCents: 10000,
+        accountId: 1,
+        createdAt: DateTime.now(),
+        dueDate: null,
+        reminderOption: 'none',
+        note: 'Borrowed for rent',
+        isSettled: false,
+        settledAt: null,
+      );
+      final person = Person(id: 11, name: 'Bob', phone: '654321');
+      final account = Account(
+        id: 1,
+        name: 'bKash',
+        type: 'wallet',
+        initialBalanceCents: 20000,
+        currency: 'USD',
+        icon: 'wallet',
+        isArchived: false,
+      );
+
+      // Partial repayment by paying Bob's $40 bill
+      final partialDetails = LoanWithDetails(
+        loan: borrowedLoan,
+        person: person,
+        account: account,
+        paidAmountCents: 4000,
+      );
+      expect(partialDetails.remainingCents, 6000);
+      expect(partialDetails.progressPercent, 0.4);
+      expect(partialDetails.isFullyPaid, isFalse);
+      expect(partialDetails.typeLabel, 'Money Received');
+
+      // Full repayment by paying remaining $60
+      final fullDetails = LoanWithDetails(
+        loan: borrowedLoan,
+        person: person,
+        account: account,
+        paidAmountCents: 10000,
+      );
+      expect(fullDetails.remainingCents, 0);
+      expect(fullDetails.progressPercent, 1.0);
+      expect(fullDetails.isFullyPaid, isTrue);
+    });
+  });
 }
 
 

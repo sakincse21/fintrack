@@ -5,6 +5,8 @@ import '../../features/accounts/presentation/accounts_screen.dart';
 import '../../features/budgets/presentation/budgets_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/goals/presentation/goals_screen.dart';
+import '../../features/loans/presentation/loans_screen.dart';
+import '../../features/loans/presentation/loan_detail_screen.dart';
 import '../../features/navigation/scaffold_with_navbar.dart';
 import '../../features/quick_add/presentation/quick_add_sheet.dart';
 import '../../features/reports/presentation/reports_screen.dart';
@@ -17,7 +19,7 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(de
 final GlobalKey<NavigatorState> _dashboardNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final GlobalKey<NavigatorState> _transactionsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'transactions');
 final GlobalKey<NavigatorState> _reportsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'reports');
-final GlobalKey<NavigatorState> _budgetsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'budgets');
+final GlobalKey<NavigatorState> _duesDebtsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dues_debts');
 final GlobalKey<NavigatorState> _settingsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 
 final GoRouter appRouter = GoRouter(
@@ -78,14 +80,14 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Branch 4: Budgets
+        // Branch 4: Dues & Debts
         StatefulShellBranch(
-          navigatorKey: _budgetsNavigatorKey,
+          navigatorKey: _duesDebtsNavigatorKey,
           routes: [
             GoRoute(
-              path: '/budgets',
+              path: '/dues-debts',
               pageBuilder: (context, state) => const NoTransitionPage(
-                child: BudgetsScreen(),
+                child: LoansScreen(),
               ),
             ),
           ],
@@ -121,6 +123,19 @@ final GoRouter appRouter = GoRouter(
       path: '/subscriptions',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const SubscriptionsScreen(),
+    ),
+    GoRoute(
+      path: '/budgets',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const BudgetsScreen(),
+    ),
+    GoRoute(
+      path: '/dues-debts/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return LoanDetailScreen(loanId: id);
+      },
     ),
     GoRoute(
       path: '/add-transaction',

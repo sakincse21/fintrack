@@ -145,5 +145,44 @@ class NotificationService {
       debugPrint('Error showing streak reminder: $e');
     }
   }
+
+  Future<void> showLoanReminderNotification({
+    required int id,
+    required String personName,
+    required String type,
+    required String amountFormatted,
+    required DateTime? dueDate,
+  }) async {
+    try {
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'loan_reminders',
+        'Loan & Debt Reminders',
+        channelDescription: 'Reminders for dues and debts payback dates',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details =
+          NotificationDetails(android: androidDetails);
+
+      final isLent = type == 'lent';
+      final title = isLent
+          ? '💰 Due Reminder: $personName'
+          : '💳 Debt Reminder: Pay $personName';
+      final body = isLent
+          ? '$personName is expected to return $amountFormatted.'
+          : 'You are scheduled to repay $amountFormatted to $personName.';
+
+      await _notificationsPlugin.show(
+        id,
+        title,
+        body,
+        details,
+      );
+    } catch (e) {
+      debugPrint('Error showing loan reminder: $e');
+    }
+  }
 }
 

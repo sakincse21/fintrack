@@ -67,6 +67,9 @@ class CsvJsonExporter {
     required List<Map<String, dynamic>> budgets,
     required List<Map<String, dynamic>> goals,
     required List<Map<String, dynamic>> merchantRules,
+    List<Map<String, dynamic>>? people,
+    List<Map<String, dynamic>>? loans,
+    List<Map<String, dynamic>>? loanPayments,
   }) {
     final payload = {
       'app': 'FinTrack',
@@ -78,6 +81,9 @@ class CsvJsonExporter {
       'budgets': budgets,
       'goals': goals,
       'merchant_rules': merchantRules,
+      'people': people ?? [],
+      'loans': loans ?? [],
+      'loan_payments': loanPayments ?? [],
     };
 
     return const JsonEncoder.withIndent('  ').convert(payload);
@@ -301,6 +307,69 @@ class CsvJsonExporter {
                 MerchantRulesCompanion.insert(
                   keyword: keyword,
                   categoryId: catId,
+                ),
+              );
+        }
+      }
+
+      // Restore people if present
+      final rawPeople = data['people'] as List? ?? [];
+      for (final p in rawPeople) {
+        if (p is Map<String, dynamic> && p['name'] != null) {
+          await db.into(db.people).insertOnConflictUpdate(
+                PeopleCompanion.insert(
+                  id: p['id'] is int ? Value(p['id']) : const Value.absent(),
+                  name: p['name'].toString(),
+                  phone: Value(p['phone']?.toString()),
+                ),
+              );
+        }
+      }
+
+      // Restore loans if present
+      final rawLoans = data['loans'] as List? ?? [];
+      for (final l in rawLoans) {
+        if (l is Map<String, dynamic> && l['personId'] != null && l['accountId'] != null) {
+          final createdAtStr = l['createdAt']?.toString();
+          final cdt = createdAtStr != null ? DateTime.tryParse(createdAtStr) ?? DateTime.now() : DateTime.now();
+          final dueDateStr = l['dueDate']?.toString();
+          final ddt = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
+          final settledAtStr = l['settledAt']?.toString();
+          final sdt = settledAtStr != null ? DateTime.tryParse(settledAtStr) : null;
+
+          await db.into(db.loans).insertOnConflictUpdate(
+                LoansCompanion.insert(
+                  id: l['id'] is int ? Value(l['id']) : const Value.absent(),
+                  personId: l['personId'],
+                  type: l['type']?.toString() ?? 'lent',
+                  amountCents: l['amountCents'] ?? 0,
+                  accountId: l['accountId'],
+                  createdAt: cdt,
+                  dueDate: Value(ddt),
+                  reminderOption: Value(l['reminderOption']?.toString() ?? 'none'),
+                  note: Value(l['note']?.toString()),
+                  isSettled: Value(l['isSettled'] ?? false),
+                  settledAt: Value(sdt),
+                ),
+              );
+        }
+      }
+
+      // Restore loan payments if present
+      final rawLoanPayments = data['loan_payments'] as List? ?? [];
+      for (final lp in rawLoanPayments) {
+        if (lp is Map<String, dynamic> && lp['loanId'] != null && lp['accountId'] != null) {
+          final paidAtStr = lp['paidAt']?.toString();
+          final pdt = paidAtStr != null ? DateTime.tryParse(paidAtStr) ?? DateTime.now() : DateTime.now();
+
+          await db.into(db.loanPayments).insertOnConflictUpdate(
+                LoanPaymentsCompanion.insert(
+                  id: lp['id'] is int ? Value(lp['id']) : const Value.absent(),
+                  loanId: lp['loanId'],
+                  amountCents: lp['amountCents'] ?? 0,
+                  accountId: lp['accountId'],
+                  paidAt: pdt,
+                  note: Value(lp['note']?.toString()),
                 ),
               );
         }

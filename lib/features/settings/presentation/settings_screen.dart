@@ -26,6 +26,9 @@ class SettingsScreen extends ConsumerWidget {
       final budgets = await db.select(db.budgets).get();
       final goals = await db.select(db.goals).get();
       final rules = await db.select(db.merchantRules).get();
+      final people = await db.getAllPeople();
+      final loans = await db.select(db.loans).get();
+      final loanPayments = await db.select(db.loanPayments).get();
 
       final jsonBackup = CsvJsonExporter.exportFullBackupJson(
         accounts: accounts.map((a) => a.toJson()).toList(),
@@ -34,6 +37,9 @@ class SettingsScreen extends ConsumerWidget {
         budgets: budgets.map((b) => b.toJson()).toList(),
         goals: goals.map((g) => g.toJson()).toList(),
         merchantRules: rules.map((r) => r.toJson()).toList(),
+        people: people.map((p) => p.toJson()).toList(),
+        loans: loans.map((l) => l.toJson()).toList(),
+        loanPayments: loanPayments.map((lp) => lp.toJson()).toList(),
       );
 
       final tempDir = await getTemporaryDirectory();
@@ -337,6 +343,15 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: const Text('Track recurring services, streaming & memberships', style: TextStyle(fontSize: 13)),
                   trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
                   onTap: () => context.push('/subscriptions'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: const Icon(LucideIcons.target, color: AppColors.secondary, size: 22),
+                  title: const Text('Budgets', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
+                  subtitle: const Text('Set spending limits by category', style: TextStyle(fontSize: 13)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  onTap: () => context.push('/budgets'),
                 ),
               ],
             ),

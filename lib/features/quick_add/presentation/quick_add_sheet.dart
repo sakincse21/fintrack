@@ -15,6 +15,8 @@ import '../../milestones/providers/milestones_provider.dart';
 import '../../settings/presentation/category_manager_screen.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../streaks/providers/streak_provider.dart';
+import '../../loans/presentation/widgets/person_picker.dart';
+import '../../loans/providers/loans_provider.dart';
 import 'widgets/natural_voice_input_dialog.dart';
 
 class QuickAddSheet extends ConsumerStatefulWidget {
@@ -46,7 +48,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   final TextEditingController _tagController = TextEditingController();
 
   String _amountInput = '';
-  String _selectedType = 'expense'; // 'expense', 'income', 'transfer'
+  String _selectedType = 'expense'; // 'expense', 'income', 'transfer', 'dues'
   int? _selectedCategoryId;
   int? _selectedAccountId;
   int? _selectedToAccountId; // for transfer
@@ -54,6 +56,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   bool _saveAndAddAnother = false;
   bool _isAutoMatched = false;
   bool _showMoreOptions = false;
+
+  // Dues & Debts specific state
+  String _duesSubType = 'lent'; // 'lent' (Money Given) or 'borrowed' (Money Received)
+  Person? _selectedPerson;
+  DateTime? _returnDate;
+  String _duesReminderOption = 'none'; // 'none', '1_day', '3_days', '1_week', '2_weeks', '1_month'
+  LoanWithDetails? _selectedDuesLoan; // For paying an expense through a friend's debt to me (friend owes me)
+  LoanWithDetails? _selectedRepayDebtLoan; // For paying a friend's bill to reduce my debt to them (I owe friend)
 
   @override
   void initState() {
@@ -90,7 +100,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
   Future<void> _onNoteChanged() async {
     final text = _noteController.text.trim();
-    if (text.isEmpty || _selectedType == 'transfer') return;
+    if (text.isEmpty || _selectedType == 'transfer' || _selectedType == 'dues') return;
 
     final db = ref.read(databaseProvider);
     final matchedCat = await db.findCategoryByMerchant(text);
@@ -163,66 +173,342 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     }
   }
 
-  void _showAccountPicker(BuildContext context, List<Account> accounts, {required bool isToAccount}) {
+  void _showAccountPicker(
+    BuildContext context,
+    List<Account> accounts, {
+    required bool isToAccount,
+    List<LoanWithDetails> activeLoans = const [],
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final currency = ref.read(currencyProvider);
     final currentId = isToAccount ? _selectedToAccountId : _selectedAccountId;
+
+    final eligibleLoans = (!isToAccount && _selectedType == 'expense' && widget.editTransaction == null)
+        ? activeLoans.where((l) => l.loan.type == 'lent' && !l.loan.isSettled && l.remainingCents > 0).toList()
+        : <LoanWithDetails>[];
+
+    final borrowedLoans = (!isToAccount && _selectedType == 'expense' && widget.editTransaction == null)
+        ? activeLoans.where((l) => l.loan.type == 'borrowed' && !l.loan.isSettled && l.remainingCents > 0).toList()
+        : <LoanWithDetails>[];
 
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    isToAccount ? 'Select Destination Account' : 'Select Account',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const Divider(height: 1),
-                ...accounts.map((acc) {
-                  final isSelected = acc.id == currentId;
-                  return ListTile(
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(IconHelper.getIcon(acc.icon), size: 18),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text(
+                      isToAccount ? 'Select Destination Account' : 'Select Account / Payment Method',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
-                    title: Text(acc.name, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
-                    trailing: isSelected
-                        ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        if (isToAccount) {
-                          _selectedToAccountId = acc.id;
-                        } else {
-                          _selectedAccountId = acc.id;
-                          if (_selectedToAccountId == acc.id) {
-                            final others = accounts.where((a) => a.id != acc.id).toList();
-                            _selectedToAccountId = others.isNotEmpty ? others.first.id : null;
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, top: 12, bottom: 4),
+                    child: Text(
+                      'YOUR ACCOUNTS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                  ...accounts.map((acc) {
+                    final isSelected = _selectedDuesLoan == null && _selectedRepayDebtLoan == null && acc.id == currentId;
+                    return ListTile(
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(IconHelper.getIcon(acc.icon), size: 18),
+                      ),
+                      title: Text(acc.name, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedDuesLoan = null;
+                          _selectedRepayDebtLoan = null;
+                          if (isToAccount) {
+                            _selectedToAccountId = acc.id;
+                          } else {
+                            _selectedAccountId = acc.id;
+                            if (_selectedToAccountId == acc.id) {
+                              final others = accounts.where((a) => a.id != acc.id).toList();
+                              _selectedToAccountId = others.isNotEmpty ? others.first.id : null;
+                            }
                           }
-                        }
-                      });
-                      Navigator.pop(ctx);
-                    },
-                  );
-                }),
-              ],
+                        });
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  }),
+                  if (eligibleLoans.isNotEmpty) ...[
+                    const Divider(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(LucideIcons.handCoins, size: 14, color: AppColors.income),
+                              const SizedBox(width: 6),
+                              Text(
+                                "FRIEND PAYS (DEDUCT FROM DUE)",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Friend pays this bill; deducted from what they owe you',
+                            style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white54 : Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...eligibleLoans.map((l) {
+                      final isSelected = _selectedDuesLoan?.loan.id == l.loan.id;
+                      final remainingStr = CurrencyFormatter.formatCents(l.remainingCents, symbol: currency.symbol);
+                      return ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.income.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            l.person.name.isNotEmpty ? l.person.name[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.income,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          l.person.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          'Owes $remainingStr${l.loan.note != null && l.loan.note!.isNotEmpty ? ' · ${l.loan.note}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
+                            : Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.income.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Select',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.income,
+                                  ),
+                                ),
+                              ),
+                        onTap: () {
+                          setState(() {
+                            _selectedDuesLoan = l;
+                            _selectedRepayDebtLoan = null;
+                            _selectedAccountId = l.loan.accountId;
+                          });
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    }),
+                  ],
+                  if (borrowedLoans.isNotEmpty) ...[
+                    const Divider(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(LucideIcons.arrowUpRight, size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                "I PAY FOR FRIEND (REPAY DEBT)",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'You pay friend\'s bill from your account; reduces what you owe them',
+                            style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white54 : Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...borrowedLoans.map((l) {
+                      final isSelected = _selectedRepayDebtLoan?.loan.id == l.loan.id;
+                      final remainingStr = CurrencyFormatter.formatCents(l.remainingCents, symbol: currency.symbol);
+                      return ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            l.person.name.isNotEmpty ? l.person.name[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          l.person.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          'You owe $remainingStr${l.loan.note != null && l.loan.note!.isNotEmpty ? ' · ${l.loan.note}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
+                            : Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Select',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                        onTap: () async {
+                          if (accounts.length <= 1) {
+                            setState(() {
+                              _selectedRepayDebtLoan = l;
+                              _selectedDuesLoan = null;
+                              _selectedAccountId = accounts.isNotEmpty ? accounts.first.id : null;
+                            });
+                            Navigator.pop(ctx);
+                            return;
+                          }
+
+                          final chosenAcc = await showDialog<Account>(
+                            context: ctx,
+                            builder: (dialogCtx) => AlertDialog(
+                              title: Text(
+                                'Pay on behalf of ${l.person.name}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Which account did you pay from?',
+                                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...accounts.map((acc) => ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(IconHelper.getIcon(acc.icon), size: 16),
+                                    ),
+                                    title: Text(acc.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    onTap: () => Navigator.pop(dialogCtx, acc),
+                                  )),
+                                ],
+                              ),
+                            ),
+                          );
+
+                          if (chosenAcc != null && mounted) {
+                            setState(() {
+                              _selectedRepayDebtLoan = l;
+                              _selectedDuesLoan = null;
+                              _selectedAccountId = chosenAcc.id;
+                            });
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                            }
+                          }
+                        },
+                      );
+                    }),
+                  ],
+                ],
+              ),
             ),
           ),
         );
@@ -253,6 +539,268 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     // Learn merchant rule automatically
     if (note.isNotEmpty && _selectedCategoryId != null && _selectedType == 'expense') {
       await db.saveMerchantRule(note, _selectedCategoryId!);
+    }
+
+    if (_selectedType == 'dues') {
+      if (_selectedPerson == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select a person for dues/debts'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      await db.insertLoan(
+        LoansCompanion.insert(
+          personId: _selectedPerson!.id,
+          type: _duesSubType,
+          amountCents: cents,
+          accountId: accountId,
+          createdAt: _selectedDate,
+          dueDate: drift.Value(_returnDate),
+          reminderOption: drift.Value(_duesReminderOption),
+          note: drift.Value(note.isEmpty ? null : note),
+        ),
+      );
+
+      // Record streak for logging financial activity
+      await ref.read(streakProvider.notifier).recordTransactionForStreak(_selectedDate);
+
+      if (_saveAndAddAnother) {
+        if (!mounted) return;
+        setState(() {
+          _amountInput = '';
+          _amountController.clear();
+          _noteController.clear();
+          _tagController.clear();
+          _selectedPerson = null;
+          _returnDate = null;
+          _duesReminderOption = 'none';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dues recorded! Enter next transaction.'),
+            duration: Duration(milliseconds: 1200),
+          ),
+        );
+      } else {
+        if (mounted) Navigator.pop(context);
+      }
+      return;
+    }
+
+    // Deduct expense from friend's due/loan
+    if (_selectedType == 'expense' && _selectedDuesLoan != null) {
+      if (cents > _selectedDuesLoan!.remainingCents) {
+        final currency = ref.read(currencyProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Amount (${CurrencyFormatter.formatCents(cents, symbol: currency.symbol)}) exceeds ${_selectedDuesLoan!.person.name}\'s remaining due of ${CurrencyFormatter.formatCents(_selectedDuesLoan!.remainingCents, symbol: currency.symbol)}',
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      final friendName = _selectedDuesLoan!.person.name;
+      final effectiveTxNote = note.isEmpty
+          ? 'Paid by $friendName (Due deduction)'
+          : '$note (Paid by $friendName)';
+
+      // 1. Insert expense transaction
+      await db.into(db.transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: _selectedDuesLoan!.loan.accountId,
+          categoryId: drift.Value(_selectedCategoryId),
+          amountCents: cents,
+          type: 'expense',
+          note: drift.Value(effectiveTxNote),
+          date: _selectedDate,
+          tagIds: drift.Value(_tagController.text.trim()),
+        ),
+      );
+
+      // 2. Insert loan repayment (which automatically records balancing income transaction on the account and auto-settles if loan is cleared)
+      final paymentNote = note.isEmpty
+          ? 'Loan repayment from $friendName (Paid expense)'
+          : 'Repayment from $friendName: $note';
+
+      await db.insertLoanPayment(
+        LoanPaymentsCompanion.insert(
+          loanId: _selectedDuesLoan!.loan.id,
+          amountCents: cents,
+          accountId: _selectedDuesLoan!.loan.accountId,
+          paidAt: _selectedDate,
+          note: drift.Value(paymentNote),
+        ),
+        createTransaction: true,
+      );
+
+      // Record streak and trigger milestones
+      await ref.read(streakProvider.notifier).recordTransactionForStreak(_selectedDate);
+
+      // Budget Alert check
+      if (_selectedCategoryId != null) {
+        final budgets = await db.watchBudgetsWithProgress(_selectedDate).first;
+        final matchedBudget = budgets.where((b) => b.category.id == _selectedCategoryId).firstOrNull;
+        if (matchedBudget != null) {
+          final threshold = ref.read(budgetAlertThresholdProvider);
+          if (matchedBudget.progress >= threshold) {
+            final currency = ref.read(currencyProvider);
+            ref.read(notificationServiceProvider).showBudgetAlert(
+                  id: matchedBudget.budget.id,
+                  categoryName: matchedBudget.category.name,
+                  percentage: matchedBudget.progress,
+                  spentFormatted: CurrencyFormatter.formatCents(matchedBudget.spentCents, symbol: currency.symbol),
+                  limitFormatted: CurrencyFormatter.formatCents(matchedBudget.budget.amountCents, symbol: currency.symbol),
+                );
+          }
+        }
+      }
+
+      if (_saveAndAddAnother) {
+        if (!mounted) return;
+        setState(() {
+          _amountInput = '';
+          _amountController.clear();
+          _noteController.clear();
+          _tagController.clear();
+          _isAutoMatched = false;
+          _selectedDuesLoan = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Expense logged & deducted from $friendName\'s loan! Enter next.'),
+              duration: const Duration(milliseconds: 1500),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Expense logged & deducted from $friendName\'s loan!'),
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Pay bill on behalf of friend (I pay friend's bill to reduce my debt to them)
+    if (_selectedType == 'expense' && _selectedRepayDebtLoan != null) {
+      if (cents > _selectedRepayDebtLoan!.remainingCents) {
+        final currency = ref.read(currencyProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Amount (${CurrencyFormatter.formatCents(cents, symbol: currency.symbol)}) exceeds what you owe ${_selectedRepayDebtLoan!.person.name} (${CurrencyFormatter.formatCents(_selectedRepayDebtLoan!.remainingCents, symbol: currency.symbol)})',
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      final friendName = _selectedRepayDebtLoan!.person.name;
+      final effectiveTxNote = note.isEmpty
+          ? 'Paid for $friendName (Debt repayment)'
+          : '$note (Paid for $friendName · Debt repayment)';
+
+      // 1. Insert expense transaction (deducts money from user's accountId)
+      await db.into(db.transactions).insert(
+        TransactionsCompanion.insert(
+          accountId: accountId,
+          categoryId: drift.Value(_selectedCategoryId),
+          amountCents: cents,
+          type: 'expense',
+          note: drift.Value(effectiveTxNote),
+          date: _selectedDate,
+          tagIds: drift.Value(_tagController.text.trim()),
+        ),
+      );
+
+      // 2. Insert loan payment on the borrowed loan (createTransaction: false because the expense already deducted from account)
+      final paymentNote = note.isEmpty
+          ? 'Paid bill on behalf of $friendName'
+          : 'Paid bill: $note';
+
+      await db.insertLoanPayment(
+        LoanPaymentsCompanion.insert(
+          loanId: _selectedRepayDebtLoan!.loan.id,
+          amountCents: cents,
+          accountId: accountId,
+          paidAt: _selectedDate,
+          note: drift.Value(paymentNote),
+        ),
+        createTransaction: false,
+      );
+
+      // Record streak and trigger milestones
+      await ref.read(streakProvider.notifier).recordTransactionForStreak(_selectedDate);
+
+      // Budget Alert check
+      if (_selectedCategoryId != null) {
+        final budgets = await db.watchBudgetsWithProgress(_selectedDate).first;
+        final matchedBudget = budgets.where((b) => b.category.id == _selectedCategoryId).firstOrNull;
+        if (matchedBudget != null) {
+          final threshold = ref.read(budgetAlertThresholdProvider);
+          if (matchedBudget.progress >= threshold) {
+            final currency = ref.read(currencyProvider);
+            ref.read(notificationServiceProvider).showBudgetAlert(
+                  id: matchedBudget.budget.id,
+                  categoryName: matchedBudget.category.name,
+                  percentage: matchedBudget.progress,
+                  spentFormatted: CurrencyFormatter.formatCents(matchedBudget.spentCents, symbol: currency.symbol),
+                  limitFormatted: CurrencyFormatter.formatCents(matchedBudget.budget.amountCents, symbol: currency.symbol),
+                );
+          }
+        }
+      }
+
+      if (_saveAndAddAnother) {
+        if (!mounted) return;
+        setState(() {
+          _amountInput = '';
+          _amountController.clear();
+          _noteController.clear();
+          _tagController.clear();
+          _isAutoMatched = false;
+          _selectedRepayDebtLoan = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Expense logged & debt to $friendName reduced! Enter next.'),
+              duration: const Duration(milliseconds: 1500),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Expense logged & debt to $friendName reduced!'),
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      }
+      return;
     }
 
     if (widget.editTransaction != null) {
@@ -336,6 +884,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     final theme = Theme.of(context);
     final currency = ref.watch(currencyProvider);
     final accountsAsync = ref.watch(accountsListProvider);
+    final activeLoansAsync = ref.watch(activeLoansProvider);
     final db = ref.watch(databaseProvider);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -343,7 +892,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         ? AppColors.income
         : _selectedType == 'expense'
             ? AppColors.primary
-            : AppColors.transfer;
+            : _selectedType == 'transfer'
+                ? AppColors.transfer
+                : AppColors.warning;
 
     final sheetBg = isDark ? AppColors.darkBackground : const Color(0xFFF5F3EF);
 
@@ -409,14 +960,25 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   const SizedBox(height: 12),
 
                   // 3. HORIZONTALLY SCROLLABLE CATEGORY ROW (Expense/Income only)
-                  if (_selectedType != 'transfer') ...[
+                  if (_selectedType == 'expense' || _selectedType == 'income') ...[
                     _buildCategorySection(theme, isDark, db),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // 3b. DUES DIRECTION TOGGLE (Money Given vs Money Received)
+                  if (_selectedType == 'dues') ...[
+                    _buildDuesDirectionToggle(isDark),
                     const SizedBox(height: 12),
                   ],
 
                   // 4. DETAILS CARD (Account, Date & Time, Note)
                   accountsAsync.when(
-                    data: (accounts) => _buildDetailsCard(theme, isDark, accounts),
+                    data: (accounts) => _buildDetailsCard(
+                      theme,
+                      isDark,
+                      accounts,
+                      activeLoans: activeLoansAsync.valueOrNull ?? [],
+                    ),
                     loading: () => const LinearProgressIndicator(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
@@ -461,6 +1023,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       {'key': 'expense', 'label': 'Expense'},
       {'key': 'income', 'label': 'Income'},
       {'key': 'transfer', 'label': 'Transfer'},
+      {'key': 'dues', 'label': 'Dues'},
     ];
 
     return Container(
@@ -482,6 +1045,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               onTap: () {
                 setState(() {
                   _selectedType = t['key'] as String;
+                  if (_selectedType != 'expense') {
+                    _selectedDuesLoan = null;
+                    _selectedRepayDebtLoan = null;
+                  }
                 });
               },
               child: AnimatedContainer(
@@ -508,6 +1075,90 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _buildDuesDirectionToggle(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _duesSubType = 'lent'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: _duesSubType == 'lent'
+                    ? AppColors.expense.withValues(alpha: 0.12)
+                    : (isDark ? AppColors.darkSurfaceElevated : Colors.white),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _duesSubType == 'lent' ? AppColors.expense : Colors.black.withValues(alpha: 0.05),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    LucideIcons.arrowUpRight,
+                    color: _duesSubType == 'lent' ? AppColors.expense : Colors.grey,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Money Given',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _duesSubType == 'lent' ? AppColors.expense : (isDark ? Colors.white70 : Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _duesSubType = 'borrowed'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: _duesSubType == 'borrowed'
+                    ? AppColors.income.withValues(alpha: 0.12)
+                    : (isDark ? AppColors.darkSurfaceElevated : Colors.white),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _duesSubType == 'borrowed' ? AppColors.income : Colors.black.withValues(alpha: 0.05),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    LucideIcons.arrowDownLeft,
+                    color: _duesSubType == 'borrowed' ? AppColors.income : Colors.grey,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Money Received',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _duesSubType == 'borrowed' ? AppColors.income : (isDark ? Colors.white70 : Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -563,6 +1214,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   }
                   _noteController.text = parsed.note;
                   _selectedType = parsed.type;
+                  if (_selectedType != 'expense') {
+                    _selectedDuesLoan = null;
+                    _selectedRepayDebtLoan = null;
+                  }
                 });
               },
             ),
@@ -796,7 +1451,13 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     );
   }
 
-  Widget _buildDetailsCard(ThemeData theme, bool isDark, List<Account> accounts) {
+  Widget _buildDetailsCard(
+    ThemeData theme,
+    bool isDark,
+    List<Account> accounts, {
+    List<LoanWithDetails> activeLoans = const [],
+  }) {
+    final currency = ref.read(currencyProvider);
     Account? selectedAcc;
     try {
       selectedAcc = accounts.firstWhere((a) => a.id == _selectedAccountId);
@@ -813,6 +1474,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       }
     }
 
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceElevated : Colors.white,
@@ -824,42 +1486,265 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       ),
       child: Column(
         children: [
-          // Row 1: Account (or From Account)
+          // If Dues: Person Selector Row
+          if (_selectedType == 'dues') ...[
+            InkWell(
+              onTap: () async {
+                final person = await PersonPicker.show(context, ref);
+                if (person != null) {
+                  setState(() => _selectedPerson = person);
+                }
+              },
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Text(
+                      'Person',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (_selectedPerson != null) ...[
+                            const Icon(LucideIcons.user, size: 15, color: Colors.grey),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                _selectedPerson!.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                          ] else
+                            const Text(
+                              'Select person *',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+          ],
+
+          // Row 1: Account (or From Account / Into Account / Paid by Friend / Repaying Debt)
           InkWell(
-            onTap: () => _showAccountPicker(context, accounts, isToAccount: false),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            onTap: () => _showAccountPicker(
+              context,
+              accounts,
+              isToAccount: false,
+              activeLoans: activeLoans,
+            ),
+            borderRadius: _selectedType == 'dues' ? null : const BorderRadius.vertical(top: Radius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   Text(
-                    _selectedType == 'transfer' ? 'From Account' : 'Account',
+                    _selectedType == 'transfer'
+                        ? 'From Account'
+                        : _selectedType == 'dues'
+                            ? (_duesSubType == 'lent' ? 'Paid From' : 'Deposited To')
+                            : (_selectedDuesLoan != null
+                                ? 'Paid by Friend'
+                                : (_selectedRepayDebtLoan != null ? 'Repaying Debt' : 'Account')),
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                       color: isDark ? Colors.white70 : const Color(0xFF374151),
                     ),
                   ),
-                  const Spacer(),
-                  if (selectedAcc != null) ...[
-                    Icon(IconHelper.getIcon(selectedAcc.icon), size: 15, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Text(
-                      selectedAcc.name,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white : const Color(0xFF111827),
-                      ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (_selectedDuesLoan != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.income.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.handCoins, size: 12, color: AppColors.income),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Due Offset',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.income,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _selectedDuesLoan!.person.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                        ] else if (_selectedRepayDebtLoan != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.arrowUpRight, size: 12, color: AppColors.primary),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Repaying',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              '${selectedAcc?.name ?? ''} • ${_selectedRepayDebtLoan!.person.name}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                        ] else if (selectedAcc != null) ...[
+                          Icon(IconHelper.getIcon(selectedAcc.icon), size: 15, color: Colors.grey),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              selectedAcc.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? Colors.white : const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                        ] else
+                          const Text('Select account', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
-                  ] else
-                    const Text('Select account', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
+                  ),
                 ],
               ),
             ),
           ),
+          if (_selectedDuesLoan != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              color: AppColors.income.withValues(alpha: 0.08),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.info, size: 13, color: AppColors.income),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Deducts from ${_selectedDuesLoan!.person.name}\'s loan (Remaining: ${CurrencyFormatter.formatCents(_selectedDuesLoan!.remainingCents, symbol: currency.symbol)})',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.income,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _selectedDuesLoan = null);
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(2),
+                      child: Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_selectedRepayDebtLoan != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              color: AppColors.primary.withValues(alpha: 0.08),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.info, size: 13, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Repays debt to ${_selectedRepayDebtLoan!.person.name} (Remaining debt: ${CurrencyFormatter.formatCents(_selectedRepayDebtLoan!.remainingCents, symbol: currency.symbol)})',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _selectedRepayDebtLoan = null);
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(2),
+                      child: Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // If Transfer: Destination Account
           if (_selectedType == 'transfer') ...[
@@ -970,7 +1855,104 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               ),
             ),
           ),
-
+          // If Dues: Return Due Date
+          if (_selectedType == 'dues') ...[
+            Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _returnDate ?? DateTime.now().add(const Duration(days: 30)),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2040),
+                );
+                if (picked != null) {
+                  setState(() => _returnDate = picked);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Text(
+                      'Return Date',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF374151),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _returnDate != null
+                          ? DateFormat('MMM d, yyyy').format(_returnDate!)
+                          : 'Optional',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: _returnDate != null
+                            ? (isDark ? Colors.white : const Color(0xFF111827))
+                            : Colors.grey,
+                      ),
+                    ),
+                    if (_returnDate != null) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => setState(() {
+                          _returnDate = null;
+                          _duesReminderOption = 'none';
+                        }),
+                        child: const Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                      ),
+                    ] else ...[
+                      const SizedBox(width: 4),
+                      const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (_returnDate != null) ...[
+              Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      'Reminder',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF374151),
+                      ),
+                    ),
+                    const Spacer(),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _duesReminderOption,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white : const Color(0xFF111827),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'none', child: Text('No reminder')),
+                          DropdownMenuItem(value: '1_day', child: Text('1 day before')),
+                          DropdownMenuItem(value: '3_days', child: Text('3 days before')),
+                          DropdownMenuItem(value: '1_week', child: Text('1 week before')),
+                          DropdownMenuItem(value: '2_weeks', child: Text('2 weeks before')),
+                          DropdownMenuItem(value: '1_month', child: Text('1 month before')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _duesReminderOption = val);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
           Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
 
           // Row 3: Note
@@ -1217,12 +2199,20 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       buttonText = 'Enter an amount';
     } else if (_saveAndAddAnother) {
       buttonText = 'Save & Add Next';
+    } else if (_selectedType == 'expense' && _selectedDuesLoan != null) {
+      buttonText = 'Save & Deduct from ${_selectedDuesLoan!.person.name}';
+    } else if (_selectedType == 'expense' && _selectedRepayDebtLoan != null) {
+      buttonText = 'Save & Repay to ${_selectedRepayDebtLoan!.person.name}';
     } else {
       buttonText = _selectedType == 'expense'
           ? 'Save Expense'
           : _selectedType == 'income'
               ? 'Save Income'
-              : 'Save Transfer';
+              : _selectedType == 'transfer'
+                  ? 'Save Transfer'
+                  : _duesSubType == 'lent'
+                      ? 'Record Money Given'
+                      : 'Record Money Received';
     }
 
     final buttonBg = !hasAmount
@@ -1244,6 +2234,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           borderRadius: BorderRadius.circular(25),
           child: Container(
             alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(25),
               border: !hasAmount
@@ -1252,6 +2243,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             ),
             child: Text(
               buttonText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
