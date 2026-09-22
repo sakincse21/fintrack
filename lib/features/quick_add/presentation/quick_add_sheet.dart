@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -64,6 +65,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String _duesReminderOption = 'none'; // 'none', '1_day', '3_days', '1_week', '2_weeks', '1_month'
   LoanWithDetails? _selectedDuesLoan; // For paying an expense through a friend's debt to me (friend owes me)
   LoanWithDetails? _selectedRepayDebtLoan; // For paying a friend's bill to reduce my debt to them (I owe friend)
+  final _transferChargeController = TextEditingController();
 
   @override
   void initState() {
@@ -84,6 +86,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       _selectedDate = tx.date;
       _tagController.text = tx.tagIds;
       _showMoreOptions = tx.tagIds.isNotEmpty;
+      if (tx.feeCents > 0) {
+        final fee = (tx.feeCents / 100.0);
+        _transferChargeController.text = fee % 1 == 0 ? fee.toInt().toString() : fee.toStringAsFixed(2);
+      }
     }
 
     _noteController.addListener(_onNoteChanged);
@@ -95,6 +101,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     _amountController.dispose();
     _noteController.dispose();
     _tagController.dispose();
+    _transferChargeController.dispose();
     super.dispose();
   }
 
@@ -803,6 +810,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       return;
     }
 
+    final chargeCents = _selectedType == 'transfer'
+        ? (CurrencyFormatter.parseAmountToCents(_transferChargeController.text.trim()) ?? 0)
+        : 0;
+
     if (widget.editTransaction != null) {
       await (db.update(db.transactions)..where((t) => t.id.equals(widget.editTransaction!.id)))
           .write(
@@ -815,6 +826,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           date: drift.Value(_selectedDate),
           tagIds: drift.Value(_tagController.text.trim()),
           toAccountId: drift.Value(_selectedType == 'transfer' ? _selectedToAccountId : null),
+          feeCents: drift.Value(chargeCents),
         ),
       );
       if (mounted) Navigator.pop(context);
@@ -829,6 +841,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           date: _selectedDate,
           tagIds: drift.Value(_tagController.text.trim()),
           toAccountId: drift.Value(_selectedType == 'transfer' ? _selectedToAccountId : null),
+          feeCents: drift.Value(chargeCents),
         ),
       );
 
@@ -863,6 +876,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         setState(() {
           _amountInput = '';
           _amountController.clear();
+          _transferChargeController.clear();
           _noteController.clear();
           _tagController.clear();
           _isAutoMatched = false;
@@ -1474,6 +1488,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       }
     }
 
+    final rawAmount = _amountInput.isNotEmpty ? _amountInput : _amountController.text;
+    final currentAmountCents = CurrencyFormatter.parseAmountToCents(rawAmount) ?? 0;
+    final transferChargeCents = CurrencyFormatter.parseAmountToCents(_transferChargeController.text.trim()) ?? 0;
+    final transferTotalCents = currentAmountCents + transferChargeCents;
 
     return Container(
       decoration: BoxDecoration(
@@ -1767,26 +1785,128 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         color: isDark ? Colors.white70 : const Color(0xFF374151),
                       ),
                     ),
-                    const Spacer(),
-                    if (selectedToAcc != null) ...[
-                      Icon(IconHelper.getIcon(selectedToAcc.icon), size: 15, color: Colors.grey),
-                      const SizedBox(width: 6),
-                      Text(
-                        selectedToAcc.name,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white : const Color(0xFF111827),
-                        ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (selectedToAcc != null) ...[
+                            Icon(IconHelper.getIcon(selectedToAcc.icon), size: 15, color: Colors.grey),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                selectedToAcc.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF111827),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                          ] else
+                            const Text('Select destination', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
-                    ] else
-                      const Text('Select destination', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
+                    ),
                   ],
                 ),
               ),
             ),
+            Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+            // Transfer Fee / Charge (Optional)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Transfer Charge',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white70 : const Color(0xFF374151),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'Optional',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _transferChargeController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF111827),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0.00 (${currency.symbol})',
+                        hintStyle: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.grey.shade400,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (transferChargeCents > 0) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                color: AppColors.transfer.withValues(alpha: 0.08),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.info, size: 13, color: AppColors.transfer),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Total deducted from ${selectedAcc?.name ?? 'From Account'}: ${CurrencyFormatter.formatCents(transferTotalCents, symbol: currency.symbol)} (${CurrencyFormatter.formatCents(currentAmountCents, symbol: currency.symbol)} + ${CurrencyFormatter.formatCents(transferChargeCents, symbol: currency.symbol)} fee)',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.transfer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
 
           Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),

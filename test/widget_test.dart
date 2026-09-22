@@ -870,6 +870,7 @@ void main() {
           toAccountId: null,
           createdAt: DateTime.now(),
           deletedAt: null,
+          feeCents: 0,
         ),
         category: const Category(
           id: 10,
@@ -939,6 +940,7 @@ void main() {
           toAccountId: null,
           createdAt: now,
           deletedAt: null,
+          feeCents: 0,
         ),
         category: const Category(
           id: 10,
@@ -976,6 +978,7 @@ void main() {
           toAccountId: null,
           createdAt: now,
           deletedAt: null,
+          feeCents: 0,
         ),
         category: const Category(
           id: 11,
@@ -1134,6 +1137,105 @@ void main() {
       expect(fullDetails.remainingCents, 0);
       expect(fullDetails.progressPercent, 1.0);
       expect(fullDetails.isFullyPaid, isTrue);
+    });
+  });
+
+  group('Transfer Charge / Fee Tests', () {
+    test('TransactionItem model stores feeCents and calculates total source deduction correctly', () {
+      final now = DateTime.now();
+      final tx = TransactionItem(
+        id: 1,
+        accountId: 1,
+        categoryId: null,
+        amountCents: 10000, // $100
+        type: 'transfer',
+        note: 'Bank to bKash transfer',
+        date: now,
+        tagIds: '',
+        receiptPath: null,
+        isRecurring: false,
+        recurringId: null,
+        toAccountId: 2,
+        createdAt: now,
+        deletedAt: null,
+        feeCents: 500, // $5 fee
+      );
+
+      expect(tx.feeCents, 500);
+      expect(tx.amountCents, 10000);
+      expect(tx.amountCents + tx.feeCents, 10500);
+      expect(CurrencyFormatter.formatCents(tx.feeCents, symbol: '\$'), '\$5.00');
+      expect(CurrencyFormatter.formatCents(tx.amountCents + tx.feeCents, symbol: '\$'), '\$105.00');
+    });
+
+    testWidgets('TransactionDetailDialog renders transfer fee and total deducted breakdown when fee > 0', (tester) async {
+      final now = DateTime.now();
+      final item = TransactionWithDetails(
+        transaction: TransactionItem(
+          id: 1,
+          accountId: 1,
+          categoryId: null,
+          amountCents: 10000,
+          type: 'transfer',
+          note: 'ATM Withdrawal / Transfer',
+          date: now,
+          tagIds: '',
+          receiptPath: null,
+          isRecurring: false,
+          recurringId: null,
+          toAccountId: 2,
+          createdAt: now,
+          deletedAt: null,
+          feeCents: 250, // $2.50 fee
+        ),
+        account: const Account(
+          id: 1,
+          name: 'Main Bank',
+          type: 'bank',
+          initialBalanceCents: 50000,
+          currency: 'USD',
+          icon: 'account_balance',
+          isArchived: false,
+        ),
+        toAccount: const Account(
+          id: 2,
+          name: 'Wallet Cash',
+          type: 'cash',
+          initialBalanceCents: 1000,
+          currency: 'USD',
+          icon: 'wallet',
+          isArchived: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => TransactionDetailDialog(item: item),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Verify transfer amount, fee, and breakdown
+      expect(find.text('\$100.00'), findsNWidgets(2)); // Big amount + Credited amount
+      expect(find.text('Transfer Charge:'), findsOneWidget);
+      expect(find.text('\$2.50'), findsOneWidget);
+      expect(find.text('Total Deducted (Main Bank):'), findsOneWidget);
+      expect(find.text('\$102.50'), findsOneWidget);
+      expect(find.text('Credited (Wallet Cash):'), findsOneWidget);
     });
   });
 }

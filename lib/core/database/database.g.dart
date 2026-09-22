@@ -1064,6 +1064,18 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _feeCentsMeta = const VerificationMeta(
+    'feeCents',
+  );
+  @override
+  late final GeneratedColumn<int> feeCents = GeneratedColumn<int>(
+    'fee_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1080,6 +1092,7 @@ class $TransactionsTable extends Transactions
     toAccountId,
     createdAt,
     deletedAt,
+    feeCents,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1197,6 +1210,12 @@ class $TransactionsTable extends Transactions
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('fee_cents')) {
+      context.handle(
+        _feeCentsMeta,
+        feeCents.isAcceptableOrUnknown(data['fee_cents']!, _feeCentsMeta),
+      );
+    }
     return context;
   }
 
@@ -1262,6 +1281,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      feeCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fee_cents'],
+      )!,
     );
   }
 
@@ -1286,6 +1309,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
   final int? toAccountId;
   final DateTime createdAt;
   final DateTime? deletedAt;
+  final int feeCents;
   const TransactionItem({
     required this.id,
     required this.accountId,
@@ -1301,6 +1325,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
     this.toAccountId,
     required this.createdAt,
     this.deletedAt,
+    required this.feeCents,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1329,6 +1354,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    map['fee_cents'] = Variable<int>(feeCents);
     return map;
   }
 
@@ -1358,6 +1384,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      feeCents: Value(feeCents),
     );
   }
 
@@ -1381,6 +1408,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
       toAccountId: serializer.fromJson<int?>(json['toAccountId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      feeCents: serializer.fromJson<int>(json['feeCents']),
     );
   }
   @override
@@ -1401,6 +1429,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
       'toAccountId': serializer.toJson<int?>(toAccountId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'feeCents': serializer.toJson<int>(feeCents),
     };
   }
 
@@ -1419,6 +1448,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
     Value<int?> toAccountId = const Value.absent(),
     DateTime? createdAt,
     Value<DateTime?> deletedAt = const Value.absent(),
+    int? feeCents,
   }) => TransactionItem(
     id: id ?? this.id,
     accountId: accountId ?? this.accountId,
@@ -1434,6 +1464,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
     toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
     createdAt: createdAt ?? this.createdAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    feeCents: feeCents ?? this.feeCents,
   );
   TransactionItem copyWithCompanion(TransactionsCompanion data) {
     return TransactionItem(
@@ -1463,6 +1494,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
           : this.toAccountId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      feeCents: data.feeCents.present ? data.feeCents.value : this.feeCents,
     );
   }
 
@@ -1482,7 +1514,8 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
           ..write('recurringId: $recurringId, ')
           ..write('toAccountId: $toAccountId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('feeCents: $feeCents')
           ..write(')'))
         .toString();
   }
@@ -1503,6 +1536,7 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
     toAccountId,
     createdAt,
     deletedAt,
+    feeCents,
   );
   @override
   bool operator ==(Object other) =>
@@ -1521,7 +1555,8 @@ class TransactionItem extends DataClass implements Insertable<TransactionItem> {
           other.recurringId == this.recurringId &&
           other.toAccountId == this.toAccountId &&
           other.createdAt == this.createdAt &&
-          other.deletedAt == this.deletedAt);
+          other.deletedAt == this.deletedAt &&
+          other.feeCents == this.feeCents);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
@@ -1539,6 +1574,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
   final Value<int?> toAccountId;
   final Value<DateTime> createdAt;
   final Value<DateTime?> deletedAt;
+  final Value<int> feeCents;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.accountId = const Value.absent(),
@@ -1554,6 +1590,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
     this.toAccountId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.feeCents = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1570,6 +1607,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
     this.toAccountId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.feeCents = const Value.absent(),
   }) : accountId = Value(accountId),
        amountCents = Value(amountCents),
        type = Value(type),
@@ -1589,6 +1627,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
     Expression<int>? toAccountId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? deletedAt,
+    Expression<int>? feeCents,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1605,6 +1644,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
       if (toAccountId != null) 'to_account_id': toAccountId,
       if (createdAt != null) 'created_at': createdAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (feeCents != null) 'fee_cents': feeCents,
     });
   }
 
@@ -1623,6 +1663,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
     Value<int?>? toAccountId,
     Value<DateTime>? createdAt,
     Value<DateTime?>? deletedAt,
+    Value<int>? feeCents,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -1639,6 +1680,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
       toAccountId: toAccountId ?? this.toAccountId,
       createdAt: createdAt ?? this.createdAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      feeCents: feeCents ?? this.feeCents,
     );
   }
 
@@ -1687,6 +1729,9 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (feeCents.present) {
+      map['fee_cents'] = Variable<int>(feeCents.value);
+    }
     return map;
   }
 
@@ -1706,7 +1751,8 @@ class TransactionsCompanion extends UpdateCompanion<TransactionItem> {
           ..write('recurringId: $recurringId, ')
           ..write('toAccountId: $toAccountId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('feeCents: $feeCents')
           ..write(')'))
         .toString();
   }
@@ -6261,6 +6307,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<int?> toAccountId,
       Value<DateTime> createdAt,
       Value<DateTime?> deletedAt,
+      Value<int> feeCents,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -6278,6 +6325,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<int?> toAccountId,
       Value<DateTime> createdAt,
       Value<DateTime?> deletedAt,
+      Value<int> feeCents,
     });
 
 class $$TransactionsTableFilterComposer
@@ -6356,6 +6404,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get feeCents => $composableBuilder(
+    column: $table.feeCents,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6438,6 +6491,11 @@ class $$TransactionsTableOrderingComposer
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get feeCents => $composableBuilder(
+    column: $table.feeCents,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -6502,6 +6560,9 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get feeCents =>
+      $composableBuilder(column: $table.feeCents, builder: (column) => column);
 }
 
 class $$TransactionsTableTableManager
@@ -6549,6 +6610,7 @@ class $$TransactionsTableTableManager
                 Value<int?> toAccountId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> feeCents = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 accountId: accountId,
@@ -6564,6 +6626,7 @@ class $$TransactionsTableTableManager
                 toAccountId: toAccountId,
                 createdAt: createdAt,
                 deletedAt: deletedAt,
+                feeCents: feeCents,
               ),
           createCompanionCallback:
               ({
@@ -6581,6 +6644,7 @@ class $$TransactionsTableTableManager
                 Value<int?> toAccountId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> feeCents = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 accountId: accountId,
@@ -6596,6 +6660,7 @@ class $$TransactionsTableTableManager
                 toAccountId: toAccountId,
                 createdAt: createdAt,
                 deletedAt: deletedAt,
+                feeCents: feeCents,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

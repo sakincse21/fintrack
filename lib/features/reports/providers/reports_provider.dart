@@ -380,7 +380,7 @@ final fullAnalyticsProvider = StreamProvider<FullAnalyticsReport>((ref) {
         }
       } else if (tx.type == 'transfer') {
         totalTransfer += tx.amountCents;
-        accountSpent[tx.accountId] = (accountSpent[tx.accountId] ?? 0) + tx.amountCents;
+        accountSpent[tx.accountId] = (accountSpent[tx.accountId] ?? 0) + tx.amountCents + tx.feeCents;
         if (tx.toAccountId != null) {
           accountIncome[tx.toAccountId!] = (accountIncome[tx.toAccountId!] ?? 0) + tx.amountCents;
         }

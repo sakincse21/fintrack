@@ -964,7 +964,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${cat?.name ?? (isTransfer ? 'Transfer' : 'General')} · ${account.name} · ${DateFormat('MMM d, h:mm a').format(tx.date)}',
+                        '${cat?.name ?? (isTransfer ? 'Transfer' : 'General')} · ${account.name} · ${DateFormat('MMM d, h:mm a').format(tx.date)}${isTransfer && tx.feeCents > 0 ? ' · Fee: ${CurrencyFormatter.formatCents(tx.feeCents, symbol: currency.symbol)}' : ''}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

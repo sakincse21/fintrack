@@ -44,6 +44,7 @@ class Transactions extends Table {
   IntColumn get toAccountId => integer().nullable().references(Accounts, #id)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get feeCents => integer().withDefault(const Constant(0))();
 }
 
 @DataClassName('RecurringRule')
@@ -259,7 +260,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'fintrack_db');
@@ -282,6 +283,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(loans);
             await m.createTable(loanPayments);
           }
+          if (from < 4) {
+            await m.addColumn(transactions, transactions.feeCents);
+          }
         },
         beforeOpen: (details) async {
           // Create high-performance indices for sub-millisecond filtering and reports
@@ -303,6 +307,9 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE TABLE IF NOT EXISTS loan_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, loan_id INTEGER NOT NULL REFERENCES loans(id), amount_cents INTEGER NOT NULL, account_id INTEGER NOT NULL REFERENCES accounts(id), paid_at INTEGER NOT NULL, note TEXT);');
           try {
             await customStatement('ALTER TABLE recurring_rules ADD COLUMN is_subscription INTEGER NOT NULL DEFAULT 0;');
+          } catch (_) {}
+          try {
+            await customStatement('ALTER TABLE transactions ADD COLUMN fee_cents INTEGER NOT NULL DEFAULT 0;');
           } catch (_) {}
         },
       );
@@ -545,7 +552,7 @@ class AppDatabase extends _$AppDatabase {
       SELECT
         COALESCE(SUM(CASE WHEN type = 'income' AND account_id = :accId THEN amount_cents ELSE 0 END), 0) AS income_tot,
         COALESCE(SUM(CASE WHEN type = 'expense' AND account_id = :accId THEN amount_cents ELSE 0 END), 0) AS expense_tot,
-        COALESCE(SUM(CASE WHEN type = 'transfer' AND account_id = :accId THEN amount_cents ELSE 0 END), 0) AS transfer_out_tot,
+        COALESCE(SUM(CASE WHEN type = 'transfer' AND account_id = :accId THEN (amount_cents + fee_cents) ELSE 0 END), 0) AS transfer_out_tot,
         COALESCE(SUM(CASE WHEN type = 'transfer' AND to_account_id = :accId THEN amount_cents ELSE 0 END), 0) AS transfer_in_tot
       FROM transactions
       WHERE deleted_at IS NULL AND (account_id = :accId OR to_account_id = :accId)
@@ -573,7 +580,8 @@ class AppDatabase extends _$AppDatabase {
         account_id,
         to_account_id,
         type,
-        SUM(amount_cents) AS total_cents
+        SUM(amount_cents) AS total_cents,
+        SUM(fee_cents) AS total_fee_cents
       FROM transactions
       WHERE deleted_at IS NULL
       GROUP BY account_id, to_account_id, type
@@ -586,6 +594,7 @@ class AppDatabase extends _$AppDatabase {
       final toAccId = row.readNullable<int>('to_account_id');
       final type = row.read<String>('type');
       final total = row.read<int>('total_cents');
+      final feeTotal = row.readNullable<int>('total_fee_cents') ?? 0;
 
       if (type == 'income') {
         if (balances.containsKey(accId)) {
@@ -597,7 +606,7 @@ class AppDatabase extends _$AppDatabase {
         }
       } else if (type == 'transfer') {
         if (balances.containsKey(accId)) {
-          balances[accId] = balances[accId]! - total;
+          balances[accId] = balances[accId]! - (total + feeTotal);
         }
         if (toAccId != null && balances.containsKey(toAccId)) {
           balances[toAccId] = balances[toAccId]! + total;

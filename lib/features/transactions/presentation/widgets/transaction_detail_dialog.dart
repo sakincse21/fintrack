@@ -113,6 +113,32 @@ class TransactionDetailDialog extends ConsumerWidget {
               const SizedBox(height: 8),
             ],
 
+            // Transfer Fee & Breakdown if transfer has fee
+            if (isTransfer && tx.feeCents > 0) ...[
+              _buildDetailRow(
+                'Transfer Charge',
+                CurrencyFormatter.formatCents(tx.feeCents, symbol: currency.symbol),
+                Icons.receipt_long,
+                valueColor: AppColors.expense,
+              ),
+              const SizedBox(height: 8),
+              _buildDetailRow(
+                'Total Deducted (${acc.name})',
+                CurrencyFormatter.formatCents(tx.amountCents + tx.feeCents, symbol: currency.symbol),
+                Icons.account_balance_wallet,
+              ),
+              const SizedBox(height: 8),
+              if (toAcc != null) ...[
+                _buildDetailRow(
+                  'Credited (${toAcc.name})',
+                  CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol),
+                  Icons.savings,
+                  valueColor: AppColors.income,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+
             // Date & Time
             _buildDetailRow(
               'Date & Time',

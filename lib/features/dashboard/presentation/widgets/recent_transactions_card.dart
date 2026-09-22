@@ -189,7 +189,9 @@ class RecentTransactionsCard extends ConsumerWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          '${DateFormat('MMM d, h:mm a').format(tx.date)} • ${account.name}',
+                          '${DateFormat('MMM d, h:mm a').format(tx.date)} • ${account.name}${isTransfer && tx.feeCents > 0 ? ' • Fee: ${CurrencyFormatter.formatCents(tx.feeCents, symbol: currency.symbol)}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12.5,
                             color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
