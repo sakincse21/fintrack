@@ -42,17 +42,9 @@ class TransactionDetailDialog extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (cat != null ? Color(cat.colorValue) : AppColors.primary).withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  IconHelper.getIcon(cat?.icon ?? 'receipt_long'),
-                  color: cat != null ? Color(cat.colorValue) : AppColors.primary,
-                  size: 20,
-                ),
+              Icon(
+                IconHelper.getIcon(cat?.icon ?? 'receipt_long'),
+                size: 22,
               ),
               const SizedBox(width: 10),
               Text(
@@ -62,7 +54,7 @@ class TransactionDetailDialog extends ConsumerWidget {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20),
+            icon: const Icon(Icons.close_rounded, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -95,12 +87,12 @@ class TransactionDetailDialog extends ConsumerWidget {
 
             // Note
             if (tx.note.isNotEmpty) ...[
-              _buildDetailRow('Note / Merchant', tx.note, Icons.edit_note),
+              _buildDetailRow('Note / Merchant', tx.note, Icons.edit_note_rounded),
               const SizedBox(height: 8),
             ],
 
             // Type
-            _buildDetailRow('Type', tx.type.toUpperCase(), Icons.swap_horiz, valueColor: amountColor),
+            _buildDetailRow('Type', tx.type.toUpperCase(), Icons.swap_horiz_rounded, valueColor: amountColor),
             const SizedBox(height: 8),
 
             // Account
@@ -118,21 +110,21 @@ class TransactionDetailDialog extends ConsumerWidget {
               _buildDetailRow(
                 'Transfer Charge',
                 CurrencyFormatter.formatCents(tx.feeCents, symbol: currency.symbol),
-                Icons.receipt_long,
+                Icons.receipt_long_outlined,
                 valueColor: AppColors.expense,
               ),
               const SizedBox(height: 8),
               _buildDetailRow(
                 'Total Deducted (${acc.name})',
                 CurrencyFormatter.formatCents(tx.amountCents + tx.feeCents, symbol: currency.symbol),
-                Icons.account_balance_wallet,
+                Icons.account_balance_wallet_outlined,
               ),
               const SizedBox(height: 8),
               if (toAcc != null) ...[
                 _buildDetailRow(
                   'Credited (${toAcc.name})',
                   CurrencyFormatter.formatCents(tx.amountCents, symbol: currency.symbol),
-                  Icons.savings,
+                  Icons.savings_outlined,
                   valueColor: AppColors.income,
                 ),
                 const SizedBox(height: 8),
@@ -143,19 +135,19 @@ class TransactionDetailDialog extends ConsumerWidget {
             _buildDetailRow(
               'Date & Time',
               '${AppDateUtils.formatFullDate(tx.date)} at ${AppDateUtils.formatTime(tx.date)}',
-              Icons.access_time,
+              Icons.access_time_rounded,
             ),
             const SizedBox(height: 8),
 
             // Tags
             if (tx.tagIds.isNotEmpty) ...[
-              _buildDetailRow('Tags', tx.tagIds, Icons.tag),
+              _buildDetailRow('Tags', tx.tagIds, Icons.label_outline_rounded),
               const SizedBox(height: 8),
             ],
 
             // Recurring indicator
             if (tx.isRecurring) ...[
-              _buildDetailRow('Recurring Bill', 'Yes (Auto-generated)', Icons.repeat),
+              _buildDetailRow('Recurring Bill', 'Yes (Auto-generated)', Icons.repeat_rounded),
               const SizedBox(height: 8),
             ],
           ],
@@ -180,7 +172,7 @@ class TransactionDetailDialog extends ConsumerWidget {
               );
             }
           },
-          icon: const Icon(Icons.delete_outline, color: AppColors.expense, size: 18),
+          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.expense, size: 18),
           label: const Text('Delete', style: TextStyle(color: AppColors.expense)),
         ),
         // Edit button
@@ -189,7 +181,7 @@ class TransactionDetailDialog extends ConsumerWidget {
             Navigator.pop(context);
             QuickAddSheet.show(context, editTransaction: tx);
           },
-          icon: const Icon(Icons.edit, size: 16),
+          icon: const Icon(Icons.edit_outlined, size: 16),
           label: const Text('Edit'),
         ),
       ],

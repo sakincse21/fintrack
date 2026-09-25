@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class CategorySeedData {
   final String name;
@@ -265,46 +264,47 @@ class DefaultCategories {
 
 class IconHelper {
   static const Map<String, IconData> iconMap = {
-    'restaurant': LucideIcons.utensils,
-    'shopping_cart': LucideIcons.shoppingCart,
-    'shopping_bag': LucideIcons.shoppingBag,
-    'directions_car': LucideIcons.car,
-    'home': LucideIcons.house,
-    'bolt': LucideIcons.zap,
-    'movie': LucideIcons.film,
-    'local_hospital': LucideIcons.heartPulse,
-    'school': LucideIcons.graduationCap,
-    'face': LucideIcons.smile,
-    'flight': LucideIcons.plane,
-    'category': LucideIcons.shapes,
-    'account_balance_wallet': LucideIcons.wallet,
-    'laptop_mac': LucideIcons.laptop,
-    'trending_up': LucideIcons.trendingUp,
-    'card_giftcard': LucideIcons.gift,
-    'apartment': LucideIcons.building2,
-    'attach_money': LucideIcons.dollarSign,
-    'payments': LucideIcons.banknote,
-    'account_balance': LucideIcons.landmark,
-    'phone_android': LucideIcons.smartphone,
-    'credit_card': LucideIcons.creditCard,
-    'savings': LucideIcons.piggyBank,
-    'pets': LucideIcons.dog,
-    'fitness_center': LucideIcons.dumbbell,
-    'receipt_long': LucideIcons.receipt,
-    'coffee': LucideIcons.coffee,
-    'local_bar': LucideIcons.wine,
-    'local_gas_station': LucideIcons.fuel,
-    'card_travel': LucideIcons.briefcase,
-    'redeem': LucideIcons.sparkles,
-    'work': LucideIcons.briefcase,
-    'spa': LucideIcons.flower,
-    'sports_esports': LucideIcons.gamepad2,
-    'medical_services': LucideIcons.stethoscope,
+    'restaurant': Icons.restaurant_outlined,
+    'shopping_cart': Icons.shopping_cart_outlined,
+    'shopping_bag': Icons.shopping_bag_outlined,
+    'directions_car': Icons.directions_car_outlined,
+    'home': Icons.home_outlined,
+    'bolt': Icons.bolt_rounded,
+    'movie': Icons.movie_outlined,
+    'local_hospital': Icons.local_hospital_outlined,
+    'school': Icons.school_outlined,
+    'face': Icons.face_outlined,
+    'flight': Icons.flight_outlined,
+    'category': Icons.category_outlined,
+    'account_balance_wallet': Icons.account_balance_wallet_outlined,
+    'laptop_mac': Icons.laptop_mac_outlined,
+    'trending_up': Icons.trending_up_rounded,
+    'card_giftcard': Icons.card_giftcard_outlined,
+    'apartment': Icons.apartment_outlined,
+    'attach_money': Icons.attach_money_rounded,
+    'payments': Icons.payments_outlined,
+    'account_balance': Icons.account_balance_outlined,
+    'phone_android': Icons.phone_android_outlined,
+    'credit_card': Icons.credit_card_outlined,
+    'savings': Icons.savings_outlined,
+    'pets': Icons.pets_outlined,
+    'fitness_center': Icons.fitness_center_rounded,
+    'receipt_long': Icons.receipt_long_outlined,
+    'coffee': Icons.coffee_outlined,
+    'local_bar': Icons.local_bar_outlined,
+    'local_gas_station': Icons.local_gas_station_outlined,
+    'card_travel': Icons.card_travel_outlined,
+    'redeem': Icons.auto_awesome_outlined,
+    'work': Icons.work_outline_rounded,
+    'spa': Icons.spa_outlined,
+    'sports_esports': Icons.sports_esports_outlined,
+    'medical_services': Icons.medical_services_outlined,
+    'repeat': Icons.repeat_rounded,
   };
 
   static IconData getIcon(String? iconName) {
-    if (iconName == null) return LucideIcons.shapes;
-    return iconMap[iconName] ?? LucideIcons.shapes;
+    if (iconName == null) return Icons.category_outlined;
+    return iconMap[iconName] ?? Icons.category_outlined;
   }
 }
 

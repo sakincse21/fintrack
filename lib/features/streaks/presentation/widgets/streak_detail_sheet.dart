@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/database/database.dart';
 
@@ -51,23 +50,11 @@ class StreakDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Flame Icon Badge
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.35),
-                width: 2,
-              ),
-            ),
-            child: const Center(
-              child: Text(
-                '🔥',
-                style: TextStyle(fontSize: 40),
-              ),
+          // Flame Icon
+          const Center(
+            child: Text(
+              '🔥',
+              style: TextStyle(fontSize: 48),
             ),
           ),
           const SizedBox(height: 16),
@@ -115,7 +102,7 @@ class StreakDetailSheet extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(LucideIcons.trophy, size: 15, color: AppColors.warning),
+                          const Icon(Icons.emoji_events_outlined, size: 16, color: AppColors.warning),
                           const SizedBox(width: 5),
                           Text(
                             '$longest Days',
@@ -150,7 +137,7 @@ class StreakDetailSheet extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(LucideIcons.shieldCheck, size: 15, color: AppColors.income),
+                          const Icon(Icons.verified_user_outlined, size: 16, color: AppColors.income),
                           const SizedBox(width: 5),
                           Text(
                             '$freezeLeft/2 Left',
@@ -188,7 +175,7 @@ class StreakDetailSheet extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(LucideIcons.info, size: 16, color: AppColors.primary),
+                const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

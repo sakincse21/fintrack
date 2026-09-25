@@ -60,7 +60,7 @@ class BudgetsScreen extends ConsumerWidget {
                             value: c.id,
                             child: Row(
                               children: [
-                                Icon(IconHelper.getIcon(c.icon), color: Color(c.colorValue), size: 18),
+                                Icon(IconHelper.getIcon(c.icon), size: 18),
                                 const SizedBox(width: 8),
                                 Text(c.name),
                               ],
@@ -176,7 +176,7 @@ class BudgetsScreen extends ConsumerWidget {
         title: const Text('Budgets', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline),
+            icon: const Icon(Icons.add_circle_outline_rounded),
             tooltip: 'Create Budget',
             onPressed: () => _showAddEditBudgetDialog(context, ref),
           ),
@@ -193,7 +193,7 @@ class BudgetsScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left),
+                  icon: const Icon(Icons.chevron_left_rounded),
                   onPressed: () {
                     ref.read(selectedBudgetMonthProvider.notifier).state =
                         DateTime(selectedMonth.year, selectedMonth.month - 1, 1);
@@ -201,7 +201,7 @@ class BudgetsScreen extends ConsumerWidget {
                 ),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_month, size: 18, color: AppColors.primary),
+                    const Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       DateFormat('MMMM yyyy').format(selectedMonth),
@@ -210,7 +210,7 @@ class BudgetsScreen extends ConsumerWidget {
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right),
+                  icon: const Icon(Icons.chevron_right_rounded),
                   onPressed: () {
                     ref.read(selectedBudgetMonthProvider.notifier).state =
                         DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
@@ -234,7 +234,7 @@ class BudgetsScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.tune, size: 60, color: Colors.grey.withValues(alpha: 0.4)),
+                            Icon(Icons.tune_rounded, size: 60, color: Colors.grey.withValues(alpha: 0.4)),
                             const SizedBox(height: 16),
                             const Text(
                               'No budgets set for this month',
@@ -249,7 +249,7 @@ class BudgetsScreen extends ConsumerWidget {
                             const SizedBox(height: 20),
                             ElevatedButton.icon(
                               onPressed: () => _showAddEditBudgetDialog(context, ref),
-                              icon: const Icon(Icons.add, size: 18),
+                              icon: const Icon(Icons.add_rounded, size: 18),
                               label: const Text('Create Category Budget'),
                             ),
                           ],
@@ -384,16 +384,14 @@ class BudgetsScreen extends ConsumerWidget {
                               children: [
                                 Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Color(b.category.colorValue).withValues(alpha: 0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        IconHelper.getIcon(b.category.icon),
-                                        color: Color(b.category.colorValue),
-                                        size: 22,
+                                    SizedBox(
+                                      width: 36,
+                                      height: 36,
+                                      child: Center(
+                                        child: Icon(
+                                          IconHelper.getIcon(b.category.icon),
+                                          size: 24,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -462,7 +460,7 @@ class BudgetsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditBudgetDialog(context, ref),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
     );
   }

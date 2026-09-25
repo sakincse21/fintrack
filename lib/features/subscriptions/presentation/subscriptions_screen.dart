@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/default_categories.dart';
 import '../../../core/database/database.dart';
@@ -29,7 +28,7 @@ class SubscriptionsScreen extends ConsumerWidget {
         toolbarHeight: 64,
         leading: Navigator.of(context).canPop()
             ? IconButton(
-                icon: const Icon(LucideIcons.chevronLeft, size: 22),
+                icon: const Icon(Icons.chevron_left_rounded, size: 22),
                 tooltip: 'Back',
                 onPressed: () => Navigator.of(context).maybePop(),
               )
@@ -37,7 +36,7 @@ class SubscriptionsScreen extends ConsumerWidget {
         title: const Text('Subscriptions', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22)),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.plus, size: 22),
+            icon: const Icon(Icons.add_rounded, size: 22),
             tooltip: 'Add Subscription',
             onPressed: () => _showAddEditSubscriptionDialog(context, ref),
           ),
@@ -53,14 +52,10 @@ class SubscriptionsScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(LucideIcons.repeat, size: 36, color: AppColors.primary),
+                    Icon(
+                      Icons.repeat_rounded,
+                      size: 54,
+                      color: Colors.grey.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 20),
                     const Text(
@@ -80,7 +75,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () => _showAddEditSubscriptionDialog(context, ref),
-                      icon: const Icon(LucideIcons.plus, size: 18),
+                      icon: const Icon(Icons.add_rounded, size: 18),
                       label: const Text('Add First Subscription'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -217,7 +212,6 @@ class SubscriptionsScreen extends ConsumerWidget {
               ...summary.items.map((item) {
                 final rule = item.details.rule;
                 final cat = item.details.category;
-                final catColor = cat != null ? Color(cat.colorValue) : AppColors.primary;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -237,16 +231,15 @@ class SubscriptionsScreen extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: catColor.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(
-                              IconHelper.getIcon(cat?.icon ?? 'repeat'),
-                              color: catColor,
-                              size: 20,
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: Center(
+                              child: Icon(
+                                IconHelper.getIcon(cat?.icon ?? 'repeat'),
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                size: 22,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -291,7 +284,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                             ],
                           ),
                           PopupMenuButton<String>(
-                            icon: const Icon(LucideIcons.moreVertical, size: 18, color: Colors.grey),
+                            icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.grey),
                             onSelected: (val) async {
                               if (val == 'edit') {
                                 _showAddEditSubscriptionDialog(context, ref, existingRule: rule);
@@ -311,7 +304,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                                 value: 'edit',
                                 child: Row(
                                   children: [
-                                    Icon(LucideIcons.pencil, size: 16),
+                                    Icon(Icons.edit_outlined, size: 16),
                                     SizedBox(width: 8),
                                     Text('Edit Subscription'),
                                   ],
@@ -321,7 +314,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                                 value: 'history',
                                 child: Row(
                                   children: [
-                                    Icon(LucideIcons.history, size: 16),
+                                    Icon(Icons.history_rounded, size: 16),
                                     SizedBox(width: 8),
                                     Text('View History'),
                                   ],
@@ -331,7 +324,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                                 value: 'cancel',
                                 child: Row(
                                   children: [
-                                    Icon(LucideIcons.ban, size: 16, color: AppColors.expense),
+                                    Icon(Icons.block_rounded, size: 16, color: AppColors.expense),
                                     SizedBox(width: 8),
                                     Text('Cancel / Deactivate', style: TextStyle(color: AppColors.expense)),
                                   ],
@@ -354,7 +347,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.alertCircle, size: 14, color: AppColors.warning),
+                              Icon(Icons.info_outline_rounded, size: 14, color: AppColors.warning),
                               SizedBox(width: 6),
                               Text(
                                 'Haven\'t confirmed this in a while — consider reviewing',
@@ -443,7 +436,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                       decoration: const InputDecoration(
                         labelText: 'Subscription Name',
                         hintText: 'e.g. Netflix, Spotify, Gym',
-                        prefixIcon: Icon(LucideIcons.tag),
+                        prefixIcon: Icon(Icons.label_outline_rounded),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -455,7 +448,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                       decoration: const InputDecoration(
                         labelText: 'Price per cycle',
                         hintText: '0.00',
-                        prefixIcon: Icon(LucideIcons.coins),
+                        prefixIcon: Icon(Icons.paid_outlined),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -465,7 +458,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                       initialValue: frequency,
                       decoration: const InputDecoration(
                         labelText: 'Billing Frequency',
-                        prefixIcon: Icon(LucideIcons.calendar),
+                        prefixIcon: Icon(Icons.calendar_month_outlined),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
@@ -491,7 +484,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                           initialValue: selectedCategory,
                           decoration: const InputDecoration(
                             labelText: 'Category',
-                            prefixIcon: Icon(LucideIcons.shapes),
+                            prefixIcon: Icon(Icons.category_outlined),
                           ),
                           items: cats
                               .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
@@ -513,7 +506,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                           initialValue: selectedAccount,
                           decoration: const InputDecoration(
                             labelText: 'Payment Account',
-                            prefixIcon: Icon(LucideIcons.landmark),
+                            prefixIcon: Icon(Icons.account_balance_outlined),
                           ),
                           items: accs
                               .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
@@ -529,10 +522,10 @@ class SubscriptionsScreen extends ConsumerWidget {
                     // Next Charge Date Picker
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(LucideIcons.calendarClock, color: AppColors.primary),
+                      leading: const Icon(Icons.event_outlined, color: AppColors.primary),
                       title: const Text('Next Charge Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       subtitle: Text(DateFormat('MMM d, yyyy').format(nextRunDate)),
-                      trailing: const Icon(LucideIcons.chevronRight, size: 16),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/database/database.dart';
 import '../../../../core/providers/database_provider.dart';
@@ -158,7 +157,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
                   hintText: 'Search people...',
-                  prefixIcon: const Icon(LucideIcons.search, size: 18),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   isDense: true,
@@ -183,7 +182,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(LucideIcons.userPlus, size: 16, color: AppColors.primary),
+                            Icon(Icons.person_add_outlined, size: 18, color: AppColors.primary),
                             SizedBox(width: 8),
                             Text(
                               'Add New',
@@ -213,7 +212,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(LucideIcons.contactRound, size: 16, color: AppColors.secondary),
+                            Icon(Icons.contacts_outlined, size: 18, color: AppColors.secondary),
                             SizedBox(width: 8),
                             Text(
                               'Import Contact',
@@ -266,19 +265,19 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           leading: Container(
-                            width: 40,
-                            height: 40,
+                            width: 38,
+                            height: 38,
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
+                              color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
                               child: Text(
                                 person.name.isNotEmpty ? person.name[0].toUpperCase() : '?',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                  color: AppColors.primary,
+                                  fontSize: 15,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                                 ),
                               ),
                             ),
@@ -297,7 +296,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
                                   style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                                 )
                               : null,
-                          trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                          trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                           onTap: () => Navigator.pop(context, person),
                         );
                       },
@@ -324,7 +323,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
           decoration: InputDecoration(
             labelText: 'Name *',
             hintText: 'Enter person name',
-            prefixIcon: const Icon(LucideIcons.user, size: 18),
+            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -335,7 +334,7 @@ class _PersonPickerSheetState extends State<_PersonPickerSheet> {
           decoration: InputDecoration(
             labelText: 'Phone (optional)',
             hintText: 'Enter phone number',
-            prefixIcon: const Icon(LucideIcons.phone, size: 18),
+            prefixIcon: const Icon(Icons.phone_outlined, size: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),

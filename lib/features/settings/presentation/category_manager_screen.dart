@@ -2,7 +2,6 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/default_categories.dart';
 import '../../../core/database/database.dart';
@@ -87,7 +86,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
                         ),
                         IconButton(
-                          icon: const Icon(LucideIcons.x, size: 20),
+                          icon: const Icon(Icons.close_rounded, size: 20),
                           onPressed: () => Navigator.pop(sheetContext),
                         ),
                       ],
@@ -104,16 +103,14 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: previewColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              IconHelper.getIcon(selectedIconKey),
-                              color: Colors.white,
-                              size: 22,
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: Center(
+                              child: Icon(
+                                IconHelper.getIcon(selectedIconKey),
+                                size: 24,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -148,7 +145,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                       decoration: InputDecoration(
                         labelText: 'Category Name',
                         hintText: 'e.g. Subscriptions, Gym, Coffee',
-                        prefixIcon: const Icon(LucideIcons.tag, size: 20),
+                        prefixIcon: const Icon(Icons.label_outline_rounded, size: 20),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       onChanged: (_) => setModalState(() {}),
@@ -183,7 +180,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                                   ? Border.all(color: Colors.white, width: 3.0)
                                   : Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0),
                             ),
-                            child: isSelected ? const Icon(LucideIcons.check, color: Colors.white, size: 18) : null,
+                            child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
                           ),
                         );
                       }).toList(),
@@ -312,11 +309,11 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
-              const Icon(LucideIcons.trash2, color: AppColors.expense, size: 22),
-              const SizedBox(width: 10),
-              const Text('Delete Category?'),
+              Icon(Icons.delete_outline_rounded, color: AppColors.expense, size: 22),
+              SizedBox(width: 10),
+              Text('Delete Category?'),
             ],
           ),
           content: Text('Are you sure you want to delete "${category.name}"?'),
@@ -367,7 +364,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
             return AlertDialog(
               title: const Row(
                 children: [
-                  Icon(LucideIcons.arrowLeftRight, color: AppColors.primary, size: 22),
+                  Icon(Icons.swap_horiz_rounded, size: 22),
                   SizedBox(width: 10),
                   Expanded(child: Text('Transfer & Delete Category', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                 ],
@@ -386,7 +383,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                       ),
                       child: Row(
                         children: [
-                          const Icon(LucideIcons.alertTriangle, color: AppColors.expense, size: 22),
+                          const Icon(Icons.warning_amber_rounded, color: AppColors.expense, size: 22),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -415,7 +412,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                           value: c.id,
                           child: Row(
                             children: [
-                              Icon(IconHelper.getIcon(c.icon), color: Color(c.colorValue), size: 16),
+                              Icon(IconHelper.getIcon(c.icon), size: 16),
                               const SizedBox(width: 8),
                               Text(c.name, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
                             ],
@@ -468,7 +465,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
         titleSpacing: 16,
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, size: 22),
+          icon: const Icon(Icons.chevron_left_rounded, size: 22),
           tooltip: 'Back',
           onPressed: () {
             if (context.canPop()) {
@@ -485,7 +482,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
               final type = _tabController.index == 0 ? 'expense' : 'income';
               _showAddEditCategorySheet(type: type);
             },
-            icon: const Icon(LucideIcons.plus, size: 18, color: AppColors.primary),
+            icon: const Icon(Icons.add_rounded, size: 18, color: AppColors.primary),
             label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 14)),
           ),
           const SizedBox(width: 8),
@@ -515,7 +512,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
           _showAddEditCategorySheet(type: type);
         },
         backgroundColor: AppColors.primary,
-        icon: const Icon(LucideIcons.plus, color: Colors.white, size: 20),
+        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
         label: const Text('New Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
       ),
     );
@@ -533,13 +530,13 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.shapes, size: 48, color: Colors.grey.withValues(alpha: 0.3)),
+                Icon(Icons.category_outlined, size: 48, color: Colors.grey.withValues(alpha: 0.3)),
                 const SizedBox(height: 12),
                 Text('No $type categories yet', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: () => _showAddEditCategorySheet(type: type),
-                  icon: const Icon(LucideIcons.plus, size: 16),
+                  icon: const Icon(Icons.add_rounded, size: 16),
                   label: Text('Add $type category'),
                 ),
               ],
@@ -555,7 +552,6 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
             final item = items[index];
             final cat = item.category;
             final count = item.transactionCount;
-            final catColor = Color(cat.colorValue);
 
             return RepaintBoundary(
               child: Container(
@@ -570,13 +566,16 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   onTap: () => _showAddEditCategorySheet(existing: cat, type: type),
-                  leading: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: catColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(14),
+                  leading: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Center(
+                      child: Icon(
+                        IconHelper.getIcon(cat.icon),
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        size: 22,
+                      ),
                     ),
-                    child: Icon(IconHelper.getIcon(cat.icon), color: catColor, size: 20),
                   ),
                   title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   subtitle: Padding(
@@ -593,12 +592,12 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> w
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(LucideIcons.pencil, size: 18),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
                         tooltip: 'Edit Category',
                         onPressed: () => _showAddEditCategorySheet(existing: cat, type: type),
                       ),
                       IconButton(
-                        icon: const Icon(LucideIcons.trash2, size: 18, color: AppColors.expense),
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.expense),
                         tooltip: 'Delete Category',
                         onPressed: () => _confirmDeleteCategory(cat),
                       ),

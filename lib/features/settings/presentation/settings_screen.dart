@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
@@ -86,7 +85,7 @@ class SettingsScreen extends ConsumerWidget {
               builder: (ctx) => AlertDialog(
                 title: const Row(
                   children: [
-                    Icon(LucideIcons.fileUp, color: AppColors.primary, size: 22),
+                    Icon(Icons.upload_file_rounded, size: 22),
                     SizedBox(width: 10),
                     Expanded(child: Text('Restore FinTrack Backup?')),
                   ],
@@ -165,7 +164,7 @@ class SettingsScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Select Currency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      IconButton(icon: const Icon(LucideIcons.x), onPressed: () => Navigator.pop(ctx)),
+                      IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
                     ],
                   ),
                 ),
@@ -212,7 +211,7 @@ class SettingsScreen extends ConsumerWidget {
                 const Text('Choose Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 const SizedBox(height: 12),
                 ListTile(
-                  leading: const Icon(LucideIcons.sun, color: AppColors.primary),
+                  leading: const Icon(Icons.light_mode_outlined),
                   title: const Text('Light'),
                   onTap: () {
                     ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
@@ -220,7 +219,7 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(LucideIcons.moon, color: AppColors.secondary),
+                  leading: const Icon(Icons.dark_mode_outlined),
                   title: const Text('Dark (Paylix Obsidian)'),
                   onTap: () {
                     ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
@@ -228,7 +227,7 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(LucideIcons.smartphone, color: Colors.grey),
+                  leading: const Icon(Icons.phone_android_outlined),
                   title: const Text('System Default'),
                   onTap: () {
                     ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
@@ -288,7 +287,7 @@ class SettingsScreen extends ConsumerWidget {
         toolbarHeight: 64,
         leading: Navigator.of(context).canPop()
             ? IconButton(
-                icon: const Icon(LucideIcons.chevronLeft, size: 22),
+                icon: const Icon(Icons.chevron_left_rounded, size: 22),
                 tooltip: 'Back',
                 onPressed: () => Navigator.of(context).maybePop(),
               )
@@ -306,51 +305,51 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.landmark, color: AppColors.secondary, size: 22),
+                  leading: const Icon(Icons.account_balance_outlined, size: 22),
                   title: const Text('Accounts & Net Worth', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Cash, bank accounts, mobile wallets & cards', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => context.push('/accounts'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.piggyBank, color: AppColors.primary, size: 22),
+                  leading: const Icon(Icons.savings_outlined, size: 22),
                   title: const Text('Savings Goals', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Set targets & calculate monthly savings suggestions', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => context.push('/goals'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.shapes, color: AppColors.warning, size: 22),
+                  leading: const Icon(Icons.category_outlined, size: 22),
                   title: const Text('Manage Categories', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Customize income and expense categories', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CategoryManagerScreen()),
-                    );
+                       context,
+                       MaterialPageRoute(builder: (_) => const CategoryManagerScreen()),
+                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.repeat, color: AppColors.primary, size: 22),
+                  leading: const Icon(Icons.repeat_rounded, size: 22),
                   title: const Text('Subscriptions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Track recurring services, streaming & memberships', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => context.push('/subscriptions'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.target, color: AppColors.secondary, size: 22),
+                  leading: const Icon(Icons.tune_rounded, size: 22),
                   title: const Text('Budgets', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Set spending limits by category', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => context.push('/budgets'),
                 ),
               ],
@@ -366,25 +365,25 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.coins, color: AppColors.primary, size: 22),
+                  leading: const Icon(Icons.paid_outlined, size: 22),
                   title: const Text('Default Currency', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: Text('${currency.name} (${currency.symbol} ${currency.code})', style: const TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => _showCurrencyPicker(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.moon, color: AppColors.secondary, size: 22),
+                  leading: const Icon(Icons.dark_mode_outlined, size: 22),
                   title: const Text('Theme Mode', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: Text(themeLabel, style: const TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
                   onTap: () => _showThemePicker(context, ref),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  secondary: const Icon(LucideIcons.shieldCheck, color: AppColors.primary, size: 22),
+                  secondary: const Icon(Icons.security_outlined, size: 22),
                   title: const Text('Strict Safe-to-Spend Mode', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Deduct monthly goal savings targets from daily safe-to-spend allowance', style: TextStyle(fontSize: 13)),
                   value: ref.watch(includeGoalsInSafeToSpendProvider),
@@ -406,25 +405,25 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.download, color: AppColors.secondary, size: 22),
+                  leading: const Icon(Icons.download_rounded, size: 22),
                   title: const Text('Export FinTrack Backup', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Save transactions, accounts, and budgets as a .fintrack file', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.share2, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.ios_share_rounded, size: 18, color: Colors.grey),
                   onTap: () => _exportFullBackup(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.upload, color: AppColors.primary, size: 22),
+                  leading: const Icon(Icons.upload_file_rounded, size: 22),
                   title: const Text('Restore FinTrack Backup', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Import and restore data from a .fintrack backup file', style: TextStyle(fontSize: 13)),
-                  trailing: const Icon(LucideIcons.fileUp, size: 18, color: Colors.grey),
+                  trailing: const Icon(Icons.file_upload_outlined, size: 18, color: Colors.grey),
                   onTap: () => _importBackup(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const Icon(LucideIcons.cloud, color: Colors.grey, size: 22),
+                  leading: const Icon(Icons.cloud_outlined, size: 22),
                   title: const Text('Google Drive Backup', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                   subtitle: const Text('Optional cloud sync (Free & local-first)', style: TextStyle(fontSize: 13)),
                   trailing: Container(
@@ -449,7 +448,7 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              leading: const Icon(LucideIcons.sparkles, color: AppColors.primary, size: 24),
+              leading: const Icon(Icons.auto_awesome_rounded, size: 24),
               title: const Text('Seed 3-Month Demo Data', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
               subtitle: const Text('Pre-fills realistic accounts, categories, charts, and budgets', style: TextStyle(fontSize: 13)),
               trailing: ElevatedButton(
@@ -476,7 +475,7 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(LucideIcons.shieldCheck, color: AppColors.primary, size: 20),
+                      Icon(Icons.verified_user_outlined, size: 20),
                       SizedBox(width: 10),
                       Text('All Features Unlocked (Single Tier)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                     ],

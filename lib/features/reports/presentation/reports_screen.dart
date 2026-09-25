@@ -2,7 +2,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -122,7 +121,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             alignment: Alignment.topRight,
             children: [
               IconButton(
-                icon: Icon(_showFilterBar ? LucideIcons.listFilter : LucideIcons.filter, size: 22),
+                icon: Icon(_showFilterBar ? Icons.filter_list_off_rounded : Icons.filter_list_rounded, size: 22),
                 tooltip: 'Filter Analytics',
                 color: _showFilterBar || activeFilterCount > 0 ? AppColors.primary : null,
                 onPressed: () => setState(() => _showFilterBar = !_showFilterBar),
@@ -149,7 +148,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           // Share Report Button
           IconButton(
-            icon: const Icon(LucideIcons.share2, size: 22),
+            icon: const Icon(Icons.share_outlined, size: 22),
             tooltip: 'Share Report',
             onPressed: () {
               reportAsync.whenData((rep) => _shareReportSummary(rep, currency.symbol));
@@ -417,10 +416,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (isSelected) ...[
-                                          const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                          const Icon(Icons.check_rounded, size: 14, color: Colors.white),
                                           const SizedBox(width: 5),
                                         ] else ...[
-                                          Icon(IconHelper.getIcon(acc.icon), size: 15, color: AppColors.primary),
+                                          Icon(IconHelper.getIcon(acc.icon), size: 15, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                                           const SizedBox(width: 6),
                                         ],
                                         Text(
@@ -496,7 +495,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             const SizedBox(width: 8),
                             ...cats.map((cat) {
                               final isSelected = filter.selectedCategoryIds.contains(cat.id);
-                              final catColor = Color(cat.colorValue);
 
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
@@ -518,10 +516,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (isSelected) ...[
-                                          const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                          const Icon(Icons.check_rounded, size: 14, color: Colors.white),
                                           const SizedBox(width: 5),
                                         ] else ...[
-                                          Icon(IconHelper.getIcon(cat.icon), size: 15, color: catColor),
+                                          Icon(IconHelper.getIcon(cat.icon), size: 15, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                                           const SizedBox(width: 6),
                                         ],
                                         Text(
@@ -557,7 +555,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       TextButton.icon(
                         onPressed: () => _selectCustomDateRange(context),
-                        icon: const Icon(LucideIcons.calendar, size: 15),
+                        icon: const Icon(Icons.calendar_month_outlined, size: 15),
                         label: Text(
                           filter.dateRangeFilter == DateRangeFilter.custom && filter.customStart != null
                               ? '${DateFormat('dd MMM').format(filter.customStart!)} - ${DateFormat('dd MMM').format(filter.customEnd!)}'
@@ -654,7 +652,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           InkWell(
             onTap: onDelete,
             borderRadius: BorderRadius.circular(8),
-            child: const Icon(LucideIcons.x, size: 14, color: AppColors.primary),
+            child: const Icon(Icons.close_rounded, size: 14, color: AppColors.primary),
           ),
         ],
       ),
@@ -696,7 +694,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected && label != 'All Flow' && label != 'All Categories' && label != 'All Accounts') ...[
-              const Icon(LucideIcons.check, size: 13, color: Colors.white),
+              const Icon(Icons.check_rounded, size: 13, color: Colors.white),
               const SizedBox(width: 5),
             ],
             Text(
@@ -757,7 +755,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              LucideIcons.calendar,
+              Icons.calendar_month_outlined,
               size: 14,
               color: isCustom
                   ? Colors.white
@@ -890,7 +888,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(LucideIcons.chartPie, size: 44, color: Colors.grey.withValues(alpha: 0.3)),
+                    Icon(Icons.pie_chart_outline_rounded, size: 44, color: Colors.grey.withValues(alpha: 0.3)),
                     const SizedBox(height: 10),
                     Text(
                       'No ${isIncomeOnly ? 'income' : (isTransferOnly ? 'transfer' : 'expense')} records for this period',
@@ -1204,7 +1202,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           itemBuilder: (context, index) {
             final item = list[index];
             final cat = item.category;
-            final catColor = Color(cat.colorValue);
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1225,16 +1222,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
               child: Row(
                 children: [
-                  // Pastel Icon Avatar
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: catColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
+                  // Minimal unboxed icon
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Center(
+                      child: Icon(
+                        IconHelper.getIcon(cat.icon),
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        size: 22,
+                      ),
                     ),
-                    child: Icon(IconHelper.getIcon(cat.icon), color: catColor, size: 20),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
 
                   // Name & Transaction Count
                   Expanded(
@@ -1351,7 +1351,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 7),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.store, color: AppColors.primary, size: 20),
+                  Icon(
+                    Icons.storefront_outlined,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

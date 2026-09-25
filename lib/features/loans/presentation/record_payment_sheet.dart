@@ -2,7 +2,6 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/database/database.dart';
 import '../../../core/providers/database_provider.dart';
@@ -201,7 +200,11 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                     ),
                     child: Row(
                       children: [
-                        Icon(LucideIcons.wallet, size: 18, color: Colors.grey[600]),
+                        Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 18,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -218,7 +221,11 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                           style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                         ),
                         const SizedBox(width: 4),
-                        Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey[400]),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
                       ],
                     ),
                   ),
@@ -234,7 +241,11 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               controller: _noteController,
               decoration: InputDecoration(
                 labelText: 'Note (optional)',
-                prefixIcon: const Icon(LucideIcons.fileText, size: 18),
+                prefixIcon: Icon(
+                  Icons.edit_note_rounded,
+                  size: 20,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               maxLines: 1,
@@ -293,14 +304,16 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               final isSelected = acc.id == _selectedAccountId;
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: Container(
+                leading: SizedBox(
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                    borderRadius: BorderRadius.circular(10),
+                  child: Center(
+                    child: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 20,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
                   ),
-                  child: const Icon(LucideIcons.wallet, size: 18),
                 ),
                 title: Text(
                   acc.name,

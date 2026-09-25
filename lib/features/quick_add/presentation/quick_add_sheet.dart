@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
@@ -241,14 +240,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ...accounts.map((acc) {
                     final isSelected = _selectedDuesLoan == null && _selectedRepayDebtLoan == null && acc.id == currentId;
                     return ListTile(
-                      leading: Container(
+                      leading: SizedBox(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                          borderRadius: BorderRadius.circular(10),
+                        child: Center(
+                          child: Icon(
+                            IconHelper.getIcon(acc.icon),
+                            size: 20,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          ),
                         ),
-                        child: Icon(IconHelper.getIcon(acc.icon), size: 18),
                       ),
                       title: Text(acc.name, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
                       trailing: isSelected
@@ -281,7 +282,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         children: [
                           Row(
                             children: [
-                              const Icon(LucideIcons.handCoins, size: 14, color: AppColors.income),
+                              const Icon(Icons.handshake_outlined, size: 16, color: AppColors.income),
                               const SizedBox(width: 6),
                               Text(
                                 "FRIEND PAYS (DEDUCT FROM DUE)",
@@ -376,7 +377,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         children: [
                           Row(
                             children: [
-                              const Icon(LucideIcons.arrowUpRight, size: 14, color: AppColors.primary),
+                              const Icon(Icons.arrow_outward_rounded, size: 16, color: AppColors.primary),
                               const SizedBox(width: 6),
                               Text(
                                 "I PAY FOR FRIEND (REPAY DEBT)",
@@ -483,14 +484,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                                   ...accounts.map((acc) => ListTile(
                                     dense: true,
                                     contentPadding: EdgeInsets.zero,
-                                    leading: Container(
+                                    leading: SizedBox(
                                       width: 32,
                                       height: 32,
-                                      decoration: BoxDecoration(
-                                        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                                        borderRadius: BorderRadius.circular(8),
+                                      child: Center(
+                                        child: Icon(
+                                          IconHelper.getIcon(acc.icon),
+                                          size: 18,
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                        ),
                                       ),
-                                      child: Icon(IconHelper.getIcon(acc.icon), size: 16),
                                     ),
                                     title: Text(acc.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                     onTap: () => Navigator.pop(dialogCtx, acc),
@@ -1115,7 +1118,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    LucideIcons.arrowUpRight,
+                    Icons.arrow_outward_rounded,
                     color: _duesSubType == 'lent' ? AppColors.expense : Colors.grey,
                     size: 18,
                   ),
@@ -1154,7 +1157,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    LucideIcons.arrowDownLeft,
+                    Icons.arrow_downward_rounded,
                     color: _duesSubType == 'borrowed' ? AppColors.income : Colors.grey,
                     size: 18,
                   ),
@@ -1251,7 +1254,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.sparkles, size: 16, color: isDark ? Colors.white70 : Colors.black87),
+              Icon(Icons.auto_awesome_rounded, size: 16, color: isDark ? Colors.white70 : Colors.black87),
               const SizedBox(width: 8),
               Text(
                 'Smart Quick Entry',
@@ -1321,8 +1324,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      LucideIcons.plus,
-                      size: 13,
+                      Icons.add_rounded,
+                      size: 15,
                       color: isDark ? Colors.white70 : const Color(0xFF18181B),
                     ),
                     const SizedBox(width: 3),
@@ -1438,8 +1441,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              LucideIcons.plus,
-                              size: 14,
+                              Icons.add_rounded,
+                              size: 16,
                               color: isDark ? Colors.white70 : Colors.black87,
                             ),
                             const SizedBox(width: 4),
@@ -1532,7 +1535,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           if (_selectedPerson != null) ...[
-                            const Icon(LucideIcons.user, size: 15, color: Colors.grey),
+                            const Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey),
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
@@ -1547,7 +1550,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                            const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                           ] else
                             const Text(
                               'Select person *',
@@ -1609,7 +1612,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(LucideIcons.handCoins, size: 12, color: AppColors.income),
+                                Icon(Icons.handshake_outlined, size: 13, color: AppColors.income),
                                 SizedBox(width: 4),
                                 Text(
                                   'Due Offset',
@@ -1636,7 +1639,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                          const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                         ] else if (_selectedRepayDebtLoan != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -1647,7 +1650,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(LucideIcons.arrowUpRight, size: 12, color: AppColors.primary),
+                                Icon(Icons.arrow_outward_rounded, size: 13, color: AppColors.primary),
                                 SizedBox(width: 4),
                                 Text(
                                   'Repaying',
@@ -1674,7 +1677,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                          const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                         ] else if (selectedAcc != null) ...[
                           Icon(IconHelper.getIcon(selectedAcc.icon), size: 15, color: Colors.grey),
                           const SizedBox(width: 6),
@@ -1690,7 +1693,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                          const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                         ] else
                           const Text('Select account', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
                       ],
@@ -1707,7 +1710,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               color: AppColors.income.withValues(alpha: 0.08),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.info, size: 13, color: AppColors.income),
+                  const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.income),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -1725,7 +1728,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     },
                     child: const Padding(
                       padding: EdgeInsets.all(2),
-                      child: Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                      child: Icon(Icons.close_rounded, size: 14, color: Colors.grey),
                     ),
                   ),
                 ],
@@ -1738,7 +1741,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               color: AppColors.primary.withValues(alpha: 0.08),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.info, size: 13, color: AppColors.primary),
+                  const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.primary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -1756,7 +1759,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     },
                     child: const Padding(
                       padding: EdgeInsets.all(2),
-                      child: Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                      child: Icon(Icons.close_rounded, size: 14, color: Colors.grey),
                     ),
                   ),
                 ],
@@ -1806,7 +1809,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                            const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                           ] else
                             const Text('Select destination', style: TextStyle(fontSize: 13.5, color: Colors.grey)),
                         ],
@@ -1891,7 +1894,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 color: AppColors.transfer.withValues(alpha: 0.08),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.info, size: 13, color: AppColors.transfer),
+                    const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.transfer),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -1970,7 +1973,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                  const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                 ],
               ),
             ),
@@ -2022,11 +2025,11 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                           _returnDate = null;
                           _duesReminderOption = 'none';
                         }),
-                        child: const Icon(LucideIcons.x, size: 14, color: Colors.grey),
+                        child: const Icon(Icons.close_rounded, size: 14, color: Colors.grey),
                       ),
                     ] else ...[
                       const SizedBox(width: 4),
-                      const Icon(LucideIcons.chevronRight, size: 14, color: Colors.grey),
+                      const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
                     ],
                   ],
                 ),
@@ -2136,7 +2139,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(LucideIcons.tag, size: 13, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                      Icon(Icons.label_outline_rounded, size: 14, color: isDark ? Colors.white54 : Colors.grey.shade600),
                       const SizedBox(width: 5),
                       Text(
                         'Add tags',
@@ -2192,7 +2195,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ),
                   child: Row(
                     children: [
-                      Icon(LucideIcons.hash, size: 14, color: isDark ? Colors.white54 : Colors.grey.shade500),
+                      Icon(Icons.tag_rounded, size: 15, color: isDark ? Colors.white54 : Colors.grey.shade500),
                       const SizedBox(width: 6),
                       Expanded(
                         child: TextField(
@@ -2289,7 +2292,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     ),
                   ),
                   child: key == 'backspace'
-                      ? Icon(LucideIcons.delete, size: 20, color: textColor)
+                      ? Icon(Icons.backspace_outlined, size: 20, color: textColor)
                       : Text(
                           key,
                           style: TextStyle(

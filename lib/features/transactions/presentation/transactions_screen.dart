@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
@@ -116,7 +115,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             alignment: Alignment.topRight,
             children: [
               IconButton(
-                icon: Icon(_showFilterBar ? LucideIcons.listFilter : LucideIcons.filter, size: 21),
+                icon: Icon(_showFilterBar ? Icons.tune_rounded : Icons.filter_list_rounded, size: 21),
                 tooltip: 'Filter Activity',
                 color: _showFilterBar || activeFilterCount > 0 ? AppColors.primary : null,
                 onPressed: () => setState(() => _showFilterBar = !_showFilterBar),
@@ -142,7 +141,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ],
           ),
           IconButton(
-            icon: const Icon(LucideIcons.share2, size: 21),
+            icon: const Icon(Icons.ios_share_rounded, size: 21),
             tooltip: 'Export CSV',
             onPressed: () {
               transactionsAsync.whenData((items) => _exportFilteredTransactions(items));
@@ -173,14 +172,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     fontSize: 14,
                     color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                   ),
-                  prefixIcon: const Icon(LucideIcons.search, size: 18),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(LucideIcons.x, size: 16),
+                          icon: const Icon(Icons.close_rounded, size: 16),
                           onPressed: () {
                             _searchController.clear();
                             _onSearchChanged('');
@@ -460,7 +459,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             const SizedBox(width: 8),
                             ...filteredCategories.map((cat) {
                               final isSelected = filter.selectedCategoryIds.contains(cat.id);
-                              final catColor = Color(cat.colorValue);
 
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
@@ -490,13 +488,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (isSelected) ...[
-                                          const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                          const Icon(Icons.check_rounded, size: 14, color: Colors.white),
                                           const SizedBox(width: 5),
                                         ] else ...[
                                           Icon(
                                             IconHelper.getIcon(cat.icon),
                                             size: 15,
-                                            color: catColor,
+                                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                                           ),
                                           const SizedBox(width: 6),
                                         ],
@@ -676,7 +674,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(LucideIcons.receipt,
+                        Icon(Icons.receipt_long_outlined,
                             size: 52, color: Colors.grey.withValues(alpha: 0.3)),
                         const SizedBox(height: 14),
                         const Text('No transactions match this filter',
@@ -824,7 +822,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         backgroundColor: AppColors.primary,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: const Icon(LucideIcons.plus, color: Colors.white, size: 24),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
       ),
     );
   }
@@ -842,12 +840,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final isIncome = tx.type == 'income';
     final isTransfer = tx.type == 'transfer';
     final isRepeating = tx.isRecurring || tx.recurringId != null;
-
-    final catColor = isTransfer
-        ? AppColors.transfer
-        : cat != null
-            ? Color(cat.colorValue)
-            : (isIncome ? AppColors.income : AppColors.expense);
 
     final amountColor = isIncome
         ? AppColors.income
@@ -871,7 +863,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               bottom: isLast ? const Radius.circular(20) : Radius.zero,
             ),
           ),
-          child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
+          child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 20),
         ),
         onDismissed: (_) async {
           await db.softDeleteTransaction(tx.id);
@@ -902,22 +894,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                // 42x42 Rounded Square Icon Tile
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: catColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    isTransfer
-                        ? LucideIcons.arrowLeftRight
-                        : IconHelper.getIcon(cat?.icon ??
-                            (isIncome ? 'attach_money' : 'receipt_long')),
-                    color: catColor,
-                    size: 20,
+                // Unboxed Slim Material Icon
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Center(
+                    child: Icon(
+                      isTransfer
+                          ? Icons.swap_horiz_rounded
+                          : IconHelper.getIcon(cat?.icon ??
+                              (isIncome ? 'attach_money' : 'receipt_long')),
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      size: 22,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1072,7 +1061,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           InkWell(
             onTap: onDelete,
             borderRadius: BorderRadius.circular(8),
-            child: const Icon(LucideIcons.x, size: 14, color: AppColors.primary),
+            child: const Icon(Icons.close_rounded, size: 14, color: AppColors.primary),
           ),
         ],
       ),
@@ -1114,7 +1103,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected && label != 'All Types' && label != 'All Categories') ...[
-              const Icon(LucideIcons.check, size: 13, color: Colors.white),
+              const Icon(Icons.check_rounded, size: 13, color: Colors.white),
               const SizedBox(width: 5),
             ],
             Text(

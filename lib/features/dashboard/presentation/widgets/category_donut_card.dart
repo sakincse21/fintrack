@@ -171,7 +171,6 @@ class _CategoryDonutCardState extends ConsumerState<CategoryDonutCard> {
                 child: Column(
                   children: widget.categories.take(4).map((catSpend) {
                     final cat = catSpend.category;
-                    final catColor = Color(cat.colorValue);
 
                     return InkWell(
                       onTap: () {
@@ -184,17 +183,10 @@ class _CategoryDonutCardState extends ConsumerState<CategoryDonutCard> {
                         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: catColor.withValues(alpha: 0.16),
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: Icon(
-                                IconHelper.getIcon(cat.icon),
-                                size: 14,
-                                color: catColor,
-                              ),
+                            Icon(
+                              IconHelper.getIcon(cat.icon),
+                              size: 16,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                             ),
                             const SizedBox(width: 10),
                             Expanded(

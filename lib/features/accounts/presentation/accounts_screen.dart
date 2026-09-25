@@ -2,7 +2,6 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/default_categories.dart';
 import '../../../core/database/database.dart';
@@ -260,7 +259,7 @@ class AccountsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, size: 20),
+          icon: const Icon(Icons.chevron_left_rounded, size: 20),
           tooltip: 'Back',
           onPressed: () {
             if (context.canPop()) {
@@ -273,7 +272,7 @@ class AccountsScreen extends ConsumerWidget {
         title: const Text('Accounts & Net Worth', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.arrowLeftRight, size: 18),
+            icon: const Icon(Icons.swap_horiz_rounded, size: 18),
             tooltip: 'Transfer',
             onPressed: () {
               final accounts = netWorthAsync.valueOrNull?.accountsWithBalance ?? [];
@@ -283,7 +282,7 @@ class AccountsScreen extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(LucideIcons.plus, size: 20),
+            icon: const Icon(Icons.add_rounded, size: 20),
             tooltip: 'Add Account',
             onPressed: () => _showAddEditAccountDialog(context, ref),
           ),
@@ -419,13 +418,15 @@ class AccountsScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Center(
+                  child: Icon(
+                    IconHelper.getIcon(acc.icon),
+                    size: 22,
+                  ),
                 ),
-                child: Icon(IconHelper.getIcon(acc.icon), color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(

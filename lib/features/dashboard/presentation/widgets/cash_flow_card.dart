@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -37,9 +36,7 @@ class CashFlowCard extends ConsumerWidget {
               child: _buildFlowMetricCard(
                 label: 'Income',
                 amountCents: incomeCents,
-                color: AppColors.income,
-                bgTint: AppColors.income.withValues(alpha: 0.12),
-                icon: LucideIcons.arrowUpRight,
+                icon: Icons.arrow_outward_rounded,
                 symbol: currency.symbol,
                 isDark: isDark,
               ),
@@ -50,9 +47,7 @@ class CashFlowCard extends ConsumerWidget {
               child: _buildFlowMetricCard(
                 label: 'Expenses',
                 amountCents: expenseCents,
-                color: AppColors.expense,
-                bgTint: AppColors.expense.withValues(alpha: 0.12),
-                icon: LucideIcons.arrowDownRight,
+                icon: Icons.arrow_downward_rounded,
                 symbol: currency.symbol,
                 isDark: isDark,
               ),
@@ -77,17 +72,10 @@ class CashFlowCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: (isNetPositive ? AppColors.income : AppColors.expense).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isNetPositive ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-                      size: 16,
-                      color: isNetPositive ? AppColors.income : AppColors.expense,
-                    ),
+                  Icon(
+                    isNetPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                    size: 18,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -142,8 +130,6 @@ class CashFlowCard extends ConsumerWidget {
   Widget _buildFlowMetricCard({
     required String label,
     required int amountCents,
-    required Color color,
-    required Color bgTint,
     required IconData icon,
     required String symbol,
     required bool isDark,
@@ -172,13 +158,10 @@ class CashFlowCard extends ConsumerWidget {
                   color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: bgTint,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 16, color: color),
+              Icon(
+                icon,
+                size: 18,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
               ),
             ],
           ),

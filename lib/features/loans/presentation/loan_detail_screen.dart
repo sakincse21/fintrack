@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/database/database.dart';
@@ -28,7 +27,7 @@ class LoanDetailScreen extends ConsumerWidget {
         titleSpacing: 0,
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, size: 22),
+          icon: const Icon(Icons.chevron_left_rounded, size: 22),
           tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
         ),
@@ -38,7 +37,7 @@ class LoanDetailScreen extends ConsumerWidget {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
+            icon: const Icon(Icons.more_vert_rounded, size: 20),
             onSelected: (action) => _handleAction(context, ref, action),
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'settle', child: Text('Mark as Settled')),
@@ -90,7 +89,7 @@ class LoanDetailScreen extends ConsumerWidget {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: typeColor.withValues(alpha: 0.12),
+                        color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
@@ -99,7 +98,7 @@ class LoanDetailScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: typeColor,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                           ),
                         ),
                       ),
@@ -202,7 +201,7 @@ class LoanDetailScreen extends ConsumerWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.alertTriangle, size: 14, color: Colors.red),
+                              Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red),
                               SizedBox(width: 4),
                               Text('Overdue', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.red)),
                             ],
@@ -218,7 +217,7 @@ class LoanDetailScreen extends ConsumerWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.checkCircle, size: 14, color: Colors.green),
+                              Icon(Icons.check_circle_outline_rounded, size: 14, color: Colors.green),
                               SizedBox(width: 4),
                               Text('Settled', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.green)),
                             ],
@@ -241,11 +240,11 @@ class LoanDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow(LucideIcons.wallet, 'Account', loanDetails.account.name),
+                _buildDetailRow(Icons.account_balance_wallet_outlined, 'Account', loanDetails.account.name),
                 if (loan.dueDate != null) ...[
                   const Divider(height: 20),
                   _buildDetailRow(
-                    LucideIcons.calendar,
+                    Icons.calendar_month_outlined,
                     'Due Date',
                     DateFormat('MMM d, yyyy').format(loan.dueDate!),
                     valueColor: loanDetails.isOverdue ? Colors.red : null,
@@ -253,17 +252,17 @@ class LoanDetailScreen extends ConsumerWidget {
                 ],
                 if (loan.reminderOption != 'none') ...[
                   const Divider(height: 20),
-                  _buildDetailRow(LucideIcons.bell, 'Reminder', _formatReminder(loan.reminderOption)),
+                  _buildDetailRow(Icons.notifications_none_rounded, 'Reminder', _formatReminder(loan.reminderOption)),
                 ],
                 const Divider(height: 20),
                 _buildDetailRow(
-                  LucideIcons.clock,
+                  Icons.schedule_rounded,
                   'Created',
                   DateFormat('MMM d, yyyy • h:mm a').format(loan.createdAt),
                 ),
                 if (loan.note != null && loan.note!.isNotEmpty) ...[
                   const Divider(height: 20),
-                  _buildDetailRow(LucideIcons.fileText, 'Note', loan.note!),
+                  _buildDetailRow(Icons.edit_note_rounded, 'Note', loan.note!),
                 ],
               ],
             ),
@@ -282,7 +281,7 @@ class LoanDetailScreen extends ConsumerWidget {
             if (!loan.isSettled)
               TextButton.icon(
                 onPressed: () => RecordPaymentSheet.show(context, loanDetails),
-                icon: const Icon(LucideIcons.plus, size: 16),
+                icon: const Icon(Icons.add_rounded, size: 16),
                 label: const Text('Record Payment'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
@@ -303,7 +302,7 @@ class LoanDetailScreen extends ConsumerWidget {
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(LucideIcons.receipt, size: 32, color: Colors.grey[400]),
+                        Icon(Icons.receipt_long_outlined, size: 32, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                         const SizedBox(height: 8),
                         Text(
                           'No payments recorded yet',
@@ -323,14 +322,16 @@ class LoanDetailScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    leading: Container(
+                    leading: SizedBox(
                       width: 38,
                       height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_downward_rounded,
+                          size: 20,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
                       ),
-                      child: const Icon(LucideIcons.arrowDownLeft, size: 18, color: Colors.green),
                     ),
                     title: Text(
                       CurrencyFormatter.formatCents(payment.amountCents, symbol: currency.symbol),
@@ -343,7 +344,7 @@ class LoanDetailScreen extends ConsumerWidget {
                     trailing: payment.note != null && payment.note!.isNotEmpty
                         ? Tooltip(
                             message: payment.note!,
-                            child: Icon(LucideIcons.fileText, size: 16, color: Colors.grey[400]),
+                            child: Icon(Icons.edit_note_rounded, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                           )
                         : null,
                   ),

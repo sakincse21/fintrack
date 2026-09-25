@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/default_categories.dart';
 import '../../../../core/providers/database_provider.dart';
@@ -73,7 +72,7 @@ class RecentTransactionsCard extends ConsumerWidget {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(LucideIcons.receipt, size: 40, color: Colors.grey.withValues(alpha: 0.3)),
+                      Icon(Icons.receipt_long_outlined, size: 40, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                       const SizedBox(height: 10),
                       Text(
                         'No recent activity',
@@ -102,11 +101,6 @@ class RecentTransactionsCard extends ConsumerWidget {
 
                 final isIncome = tx.type == 'income';
                 final isTransfer = tx.type == 'transfer';
-                final catColor = isTransfer
-                    ? AppColors.transfer
-                    : cat != null
-                        ? Color(cat.colorValue)
-                        : (isIncome ? AppColors.income : AppColors.expense);
 
                 final amountColor = isIncome
                     ? AppColors.income
@@ -124,7 +118,7 @@ class RecentTransactionsCard extends ConsumerWidget {
                       color: AppColors.expense.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
+                    child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 20),
                   ),
                   onDismissed: (direction) async {
                     await db.softDeleteTransaction(tx.id);
@@ -164,18 +158,17 @@ class RecentTransactionsCard extends ConsumerWidget {
                           builder: (ctx) => TransactionDetailDialog(item: item),
                         );
                       },
-                      leading: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: catColor.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          isTransfer
-                              ? LucideIcons.arrowLeftRight
-                              : IconHelper.getIcon(cat?.icon ?? (isIncome ? 'attach_money' : 'receipt_long')),
-                          color: catColor,
-                          size: 20,
+                      leading: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Center(
+                          child: Icon(
+                            isTransfer
+                                ? Icons.swap_horiz_rounded
+                                : IconHelper.getIcon(cat?.icon ?? (isIncome ? 'attach_money' : 'receipt_long')),
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            size: 22,
+                          ),
                         ),
                       ),
                       title: Text(

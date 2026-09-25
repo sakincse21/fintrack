@@ -92,7 +92,6 @@ class BudgetGlanceCard extends ConsumerWidget {
                   final progress = item.progress.clamp(0.0, 1.0);
                   final isOver = item.isExceeded;
                   final isNear = item.isWarning;
-                  final catColor = Color(cat.colorValue);
 
                   final barColor = isOver
                       ? AppColors.expense
@@ -107,13 +106,10 @@ class BudgetGlanceCard extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: catColor.withValues(alpha: 0.16),
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: Icon(IconHelper.getIcon(cat.icon), color: catColor, size: 15),
+                            Icon(
+                              IconHelper.getIcon(cat.icon),
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              size: 16,
                             ),
                             const SizedBox(width: 10),
                             Expanded(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/database/database.dart';
@@ -195,7 +194,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
               decoration: InputDecoration(
                 labelText: 'Note (optional)',
                 hintText: 'e.g. For dinner, rent share...',
-                prefixIcon: const Icon(LucideIcons.fileText, size: 18),
+                prefixIcon: const Icon(Icons.edit_note_rounded, size: 20),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               maxLines: 1,
@@ -254,7 +253,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
               child: Column(
                 children: [
                   Icon(
-                    LucideIcons.arrowUpRight,
+                    Icons.arrow_outward_rounded,
                     color: _type == 'lent' ? AppColors.expense : Colors.grey,
                     size: 22,
                   ),
@@ -299,7 +298,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
               child: Column(
                 children: [
                   Icon(
-                    LucideIcons.arrowDownLeft,
+                    Icons.arrow_downward_rounded,
                     color: _type == 'borrowed' ? AppColors.primary : Colors.grey,
                     size: 22,
                   ),
@@ -347,7 +346,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
         ),
         child: Row(
           children: [
-            Icon(LucideIcons.user, size: 18, color: Colors.grey[600]),
+            Icon(Icons.person_outline_rounded, size: 20, color: Colors.grey[600]),
             const SizedBox(width: 12),
             Expanded(
               child: _selectedPerson != null
@@ -374,7 +373,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
                       style: TextStyle(color: Colors.grey[500], fontSize: 15),
                     ),
             ),
-            Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey[400]),
+            Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -419,7 +418,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
         ),
         child: Row(
           children: [
-            Icon(LucideIcons.wallet, size: 18, color: Colors.grey[600]),
+            Icon(Icons.account_balance_wallet_outlined, size: 20, color: Colors.grey[600]),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -436,7 +435,7 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
               style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
             const SizedBox(width: 4),
-            Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey[400]),
+            Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -465,14 +464,16 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
               final isSelected = acc.id == _selectedAccountId;
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                leading: Container(
+                leading: SizedBox(
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-                    borderRadius: BorderRadius.circular(10),
+                  child: Center(
+                    child: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 20,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
                   ),
-                  child: const Icon(LucideIcons.wallet, size: 18),
                 ),
                 title: Text(
                   acc.name,
@@ -519,7 +520,11 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
         ),
         child: Row(
           children: [
-            Icon(LucideIcons.calendar, size: 18, color: Colors.grey[600]),
+            Icon(
+              Icons.calendar_month_outlined,
+              size: 18,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -539,10 +544,18 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
                   _dueDate = null;
                   _reminderOption = 'none';
                 }),
-                child: Icon(LucideIcons.x, size: 16, color: Colors.grey[400]),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
               )
             else
-              Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey[400]),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              ),
           ],
         ),
       ),
@@ -560,7 +573,11 @@ class _AddLoanSheetState extends ConsumerState<AddLoanSheet> {
       ),
       child: Row(
         children: [
-          Icon(LucideIcons.bell, size: 18, color: Colors.grey[600]),
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 18,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonHideUnderline(

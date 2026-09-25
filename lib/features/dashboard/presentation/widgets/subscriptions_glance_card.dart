@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../recurring/providers/recurring_provider.dart';
@@ -36,7 +35,11 @@ class SubscriptionsGlanceCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Icon(LucideIcons.repeat, color: AppColors.primary, size: 24),
+                Icon(
+                  Icons.repeat_rounded,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  size: 24,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -74,7 +77,7 @@ class SubscriptionsGlanceCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Icon(LucideIcons.chevronRight, size: 18, color: Colors.grey),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
               ],
             ),
           ),

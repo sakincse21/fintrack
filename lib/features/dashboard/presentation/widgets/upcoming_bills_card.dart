@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/default_categories.dart';
 import '../../../../core/database/database.dart';
@@ -41,7 +40,11 @@ class UpcomingBillsCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.calendarClock, color: AppColors.warning, size: 18),
+                  Icon(
+                    Icons.event_outlined,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Upcoming Bills (7 Days)',
@@ -53,7 +56,6 @@ class UpcomingBillsCard extends ConsumerWidget {
               ...bills.map((item) {
                 final rule = item.rule;
                 final cat = item.category;
-                final catColor = cat != null ? Color(cat.colorValue) : AppColors.primary;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -64,19 +66,12 @@ class UpcomingBillsCard extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: catColor.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          IconHelper.getIcon(cat?.icon ?? 'receipt_long'),
-                          color: catColor,
-                          size: 16,
-                        ),
+                      Icon(
+                        IconHelper.getIcon(cat?.icon ?? 'receipt_long'),
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        size: 20,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +96,11 @@ class UpcomingBillsCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 6),
                       IconButton(
-                        icon: const Icon(LucideIcons.circleCheck, color: AppColors.primary, size: 20),
+                        icon: Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          size: 20,
+                        ),
                         tooltip: 'Mark Paid & Log',
                         visualDensity: VisualDensity.compact,
                         onPressed: () async {

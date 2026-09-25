@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/database/database.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -39,19 +38,19 @@ class LoanCard extends StatelessWidget {
                 children: [
                   // Person avatar
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: typeColor.withValues(alpha: 0.12),
+                      color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
                       child: Text(
                         person.name.isNotEmpty ? person.name[0].toUpperCase() : '?',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: typeColor,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                         ),
                       ),
                     ),
@@ -176,7 +175,7 @@ class LoanCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      LucideIcons.calendar,
+                      Icons.calendar_month_outlined,
                       size: 13,
                       color: loanWithDetails.isOverdue ? Colors.red : Colors.grey[500],
                     ),

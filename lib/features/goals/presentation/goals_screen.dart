@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/database/database.dart';
 import '../../../core/providers/database_provider.dart';
@@ -88,7 +87,7 @@ class GoalsScreen extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(LucideIcons.calendar, size: 16),
+                          const Icon(Icons.calendar_month_outlined, size: 16),
                           const SizedBox(width: 8),
                           Text(DateFormat('MMM d, yyyy').format(selectedDate)),
                         ],
@@ -231,14 +230,7 @@ class GoalsScreen extends ConsumerWidget {
           return AlertDialog(
             title: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(LucideIcons.triangleAlert, color: AppColors.warning, size: 18),
-                ),
+                const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 22),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text('Delete Goal with Saved Funds', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
@@ -435,7 +427,7 @@ class GoalsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, size: 20),
+          icon: const Icon(Icons.chevron_left_rounded, size: 22),
           tooltip: 'Back',
           onPressed: () {
             if (context.canPop()) {
@@ -448,7 +440,7 @@ class GoalsScreen extends ConsumerWidget {
         title: const Text('Savings Goals', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.plus, size: 20),
+            icon: const Icon(Icons.add_rounded, size: 22),
             tooltip: 'Create Goal',
             onPressed: () => _showAddEditGoalDialog(context, ref),
           ),
@@ -462,7 +454,7 @@ class GoalsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(LucideIcons.target, size: 54, color: Colors.grey.withValues(alpha: 0.3)),
+                  Icon(Icons.track_changes_rounded, size: 54, color: Colors.grey.withValues(alpha: 0.3)),
                   const SizedBox(height: 16),
                   const Text(
                     'No savings goals yet',
@@ -477,7 +469,7 @@ class GoalsScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () => _showAddEditGoalDialog(context, ref),
-                    icon: const Icon(LucideIcons.plus, size: 16),
+                    icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('Create Savings Goal'),
                   ),
                 ],
@@ -551,13 +543,13 @@ class GoalsScreen extends ConsumerWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: const Icon(LucideIcons.pencil, size: 16),
+                                        icon: const Icon(Icons.edit_outlined, size: 16),
                                         tooltip: 'Edit Goal',
                                         visualDensity: VisualDensity.compact,
                                         onPressed: () => _showAddEditGoalDialog(context, ref, existing: goal),
                                       ),
                                       IconButton(
-                                        icon: const Icon(LucideIcons.trash2, size: 16, color: AppColors.expense),
+                                        icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.expense),
                                         tooltip: 'Delete Goal',
                                         visualDensity: VisualDensity.compact,
                                         onPressed: () => _confirmDeleteGoal(context, ref, goal),

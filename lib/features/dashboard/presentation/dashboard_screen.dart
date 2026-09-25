@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../milestones/presentation/widgets/milestone_celebration_dialog.dart';
 import '../../milestones/providers/milestones_provider.dart';
@@ -55,7 +54,11 @@ class DashboardScreen extends ConsumerWidget {
         toolbarHeight: 64,
         title: Row(
           children: [
-            const Icon(LucideIcons.user, color: AppColors.primary, size: 28),
+            Icon(
+              Icons.account_circle_outlined,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              size: 28,
+            ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +113,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           IconButton(
-            icon: const Icon(LucideIcons.slidersHorizontal, size: 22),
+            icon: const Icon(Icons.tune_rounded, size: 22),
             tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
@@ -128,160 +131,155 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 // 1. VittaFinance Hero Total Balance Card (with embedded Income & Expenses pills)
                 BalanceCard(
-                  totalBalanceCents: summary.totalBalanceCents,
-                  incomeCents: summary.thisMonthIncomeCents,
-                  expenseCents: summary.thisMonthExpenseCents,
-                ),
-                const SizedBox(height: 18),
+                   totalBalanceCents: summary.totalBalanceCents,
+                   incomeCents: summary.thisMonthIncomeCents,
+                   expenseCents: summary.thisMonthExpenseCents,
+                 ),
+                 const SizedBox(height: 18),
 
-                // 3. VittaFinance 4-Column Quick Action Strip
-                _buildQuickActionGrid(context, isDark),
-                const SizedBox(height: 20),
+                 // 3. VittaFinance 4-Column Quick Action Strip
+                 _buildQuickActionGrid(context, isDark),
+                 const SizedBox(height: 20),
 
-                // 4. VittaFinance Spending Category Donut & Breakdown
-                CategoryDonutCard(
-                  categories: summary.topCategories,
-                  totalExpenseCents: summary.thisMonthExpenseCents,
-                ),
-                const SizedBox(height: 16),
+                 // 4. VittaFinance Spending Category Donut & Breakdown
+                 CategoryDonutCard(
+                   categories: summary.topCategories,
+                   totalExpenseCents: summary.thisMonthExpenseCents,
+                 ),
+                 const SizedBox(height: 16),
 
-                // 5. Upcoming Bills
-                const UpcomingBillsCard(),
-                const SizedBox(height: 16),
+                 // 5. Upcoming Bills
+                 const UpcomingBillsCard(),
+                 const SizedBox(height: 16),
 
-                // 6. Subscriptions Glance Card
-                const SubscriptionsGlanceCard(),
-                const SizedBox(height: 16),
+                 // 6. Subscriptions Glance Card
+                 const SubscriptionsGlanceCard(),
+                 const SizedBox(height: 16),
 
-                // 7. Active Budgets Glance
-                const BudgetGlanceCard(),
-                const SizedBox(height: 16),
+                 // 7. Active Budgets Glance
+                 const BudgetGlanceCard(),
+                 const SizedBox(height: 16),
 
-                // 8. Dues & Debts Glance
-                const LoanSummaryCard(),
+                 // 8. Dues & Debts Glance
+                 const LoanSummaryCard(),
 
-                // 9. Recent Transactions List
-                const RecentTransactionsCard(),
-                const SizedBox(height: 36),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text('Error loading dashboard: $err'),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+                 // 9. Recent Transactions List
+                 const RecentTransactionsCard(),
+                 const SizedBox(height: 36),
+               ],
+             );
+           },
+           loading: () => const Center(child: CircularProgressIndicator()),
+           error: (err, stack) => Center(
+             child: Padding(
+               padding: const EdgeInsets.all(20),
+               child: Text('Error loading dashboard: $err'),
+             ),
+           ),
+         ),
+       ),
+     );
+   }
 
-  Widget _buildQuickActionGrid(BuildContext context, bool isDark) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActionItem(
-            context: context,
-            icon: LucideIcons.wallet,
-            color: AppColors.expense,
-            label: 'Add Expense',
-            onTap: () => QuickAddSheet.show(context, initialType: 'expense'),
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildActionItem(
-            context: context,
-            icon: LucideIcons.handCoins,
-            color: AppColors.income,
-            label: 'Add Income',
-            onTap: () => QuickAddSheet.show(context, initialType: 'income'),
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildActionItem(
-            context: context,
-            icon: LucideIcons.arrowLeftRight,
-            color: AppColors.transfer,
-            label: 'Transfer',
-            onTap: () => QuickAddSheet.show(context, initialType: 'transfer'),
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildActionItem(
-            context: context,
-            icon: LucideIcons.chartPie,
-            color: AppColors.warning,
-            label: 'Analytics',
-            onTap: () => context.go('/reports'),
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
+   Widget _buildQuickActionGrid(BuildContext context, bool isDark) {
+     return Row(
+       children: [
+         Expanded(
+           child: _buildActionItem(
+             context: context,
+             icon: Icons.account_balance_wallet_outlined,
+             label: 'Add Expense',
+             onTap: () => QuickAddSheet.show(context, initialType: 'expense'),
+             isDark: isDark,
+           ),
+         ),
+         const SizedBox(width: 8),
+         Expanded(
+           child: _buildActionItem(
+             context: context,
+             icon: Icons.savings_outlined,
+             label: 'Add Income',
+             onTap: () => QuickAddSheet.show(context, initialType: 'income'),
+             isDark: isDark,
+           ),
+         ),
+         const SizedBox(width: 8),
+         Expanded(
+           child: _buildActionItem(
+             context: context,
+             icon: Icons.swap_horiz_rounded,
+             label: 'Transfer',
+             onTap: () => QuickAddSheet.show(context, initialType: 'transfer'),
+             isDark: isDark,
+           ),
+         ),
+         const SizedBox(width: 8),
+         Expanded(
+           child: _buildActionItem(
+             context: context,
+             icon: Icons.pie_chart_outline_rounded,
+             label: 'Analytics',
+             onTap: () => context.go('/reports'),
+             isDark: isDark,
+           ),
+         ),
+       ],
+     );
+   }
 
-  Widget _buildActionItem({
-    required BuildContext context,
-    required IconData icon,
-    required Color color,
-    required String label,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+   Widget _buildActionItem({
+     required BuildContext context,
+     required IconData icon,
+     required String label,
+     required VoidCallback onTap,
+     required bool isDark,
+   }) {
+     return InkWell(
+       onTap: onTap,
+       borderRadius: BorderRadius.circular(20),
+       child: Container(
+         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+         decoration: BoxDecoration(
+           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+           borderRadius: BorderRadius.circular(20),
+           border: Border.all(
+             color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+             width: 1.0,
+           ),
+           boxShadow: [
+             BoxShadow(
+               color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+               blurRadius: 10,
+               offset: const Offset(0, 3),
+             ),
+           ],
+         ),
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             Padding(
+               padding: const EdgeInsets.all(4),
+               child: Icon(
+                 icon,
+                 color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                 size: 22,
+               ),
+             ),
+             const SizedBox(height: 8),
+             Text(
+               label,
+               style: TextStyle(
+                 fontSize: 12,
+                 fontWeight: FontWeight.w700,
+                 color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+               ),
+               textAlign: TextAlign.center,
+               maxLines: 1,
+               overflow: TextOverflow.ellipsis,
+             ),
+           ],
+         ),
+       ),
+     );
+   }
 }

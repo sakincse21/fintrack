@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -74,7 +73,7 @@ class BalanceCard extends ConsumerWidget {
                         ),
                       ),
                       SizedBox(width: 4),
-                      Icon(LucideIcons.chevronRight, color: Colors.white, size: 14),
+                      Icon(Icons.chevron_right_rounded, color: Colors.white, size: 16),
                     ],
                   ),
                 ),
@@ -142,15 +141,7 @@ class BalanceCard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: AppColors.income,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(LucideIcons.arrowUp, color: Colors.white, size: 16),
-                      ),
+                      const Icon(Icons.arrow_upward_rounded, color: Color(0xFF1E1B18), size: 20),
                     ],
                   ),
                 ),
@@ -201,15 +192,7 @@ class BalanceCard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: AppColors.expense,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(LucideIcons.arrowDown, color: Colors.white, size: 16),
-                      ),
+                      const Icon(Icons.arrow_downward_rounded, color: Color(0xFF1E1B18), size: 20),
                     ],
                   ),
                 ),

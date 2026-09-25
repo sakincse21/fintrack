@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -40,14 +39,7 @@ class LoanSummaryCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(LucideIcons.handshake, size: 16, color: AppColors.warning),
-                      ),
+                      const Icon(Icons.handshake_outlined, size: 18, color: AppColors.warning),
                       const SizedBox(width: 10),
                       const Text(
                         'Dues & Debts',
@@ -71,7 +63,7 @@ class LoanSummaryCard extends ConsumerWidget {
                           ),
                         ),
                       const SizedBox(width: 4),
-                      Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey[400]),
+                      Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey[400]),
                     ],
                   ),
                   const SizedBox(height: 12),

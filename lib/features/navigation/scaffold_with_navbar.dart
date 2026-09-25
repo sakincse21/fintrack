@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/constants/app_colors.dart';
 import '../quick_add/presentation/quick_add_sheet.dart';
 
@@ -43,28 +42,28 @@ class ScaffoldWithNavBar extends StatelessWidget {
           height: 74,
           destinations: const [
             NavigationDestination(
-              icon: Icon(LucideIcons.house, size: 23),
-              selectedIcon: Icon(LucideIcons.house, color: AppColors.primary, size: 23),
+              icon: Icon(Icons.home_outlined, size: 24),
+              selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary, size: 24),
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.receipt, size: 23),
-              selectedIcon: Icon(LucideIcons.receipt, color: AppColors.primary, size: 23),
+              icon: Icon(Icons.receipt_long_outlined, size: 24),
+              selectedIcon: Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 24),
               label: 'Activity',
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.chartColumn, size: 23),
-              selectedIcon: Icon(LucideIcons.chartColumn, color: AppColors.primary, size: 23),
+              icon: Icon(Icons.bar_chart_rounded, size: 24),
+              selectedIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 24),
               label: 'Stats',
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.handshake, size: 23),
-              selectedIcon: Icon(LucideIcons.handshake, color: AppColors.primary, size: 23),
+              icon: Icon(Icons.handshake_outlined, size: 24),
+              selectedIcon: Icon(Icons.handshake_rounded, color: AppColors.primary, size: 24),
               label: 'Dues',
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.slidersHorizontal, size: 23),
-              selectedIcon: Icon(LucideIcons.slidersHorizontal, color: AppColors.primary, size: 23),
+              icon: Icon(Icons.tune_rounded, size: 24),
+              selectedIcon: Icon(Icons.tune_rounded, color: AppColors.primary, size: 24),
               label: 'Settings',
             ),
           ],
@@ -89,7 +88,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             child: const Padding(
               padding: EdgeInsets.all(17),
-              child: Icon(LucideIcons.plus, color: Colors.white, size: 24),
+              child: Icon(Icons.add_rounded, color: Colors.white, size: 24),
             ),
           ),
         ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../providers/milestones_provider.dart';
 
@@ -27,14 +26,14 @@ class MilestoneCelebrationDialog extends StatelessWidget {
   IconData _getIcon() {
     switch (milestone.iconType) {
       case 'flame':
-        return LucideIcons.flame;
+        return Icons.local_fire_department_rounded;
       case 'trophy':
-        return LucideIcons.trophy;
+        return Icons.emoji_events_outlined;
       case 'shield':
-        return LucideIcons.shieldCheck;
+        return Icons.verified_user_outlined;
       case 'sparkles':
       default:
-        return LucideIcons.sparkles;
+        return Icons.auto_awesome_rounded;
     }
   }
 
@@ -81,21 +80,9 @@ class MilestoneCelebrationDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Celebratory Icon with Glow
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.4),
-                  width: 2.5,
-                ),
-              ),
-              child: Center(
-                child: Icon(_getIcon(), size: 44, color: accent),
-              ),
+            // Celebratory Icon
+            Center(
+              child: Icon(_getIcon(), size: 54, color: accent),
             ),
             const SizedBox(height: 20),
 

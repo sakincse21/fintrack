@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -22,7 +21,7 @@ class LoansScreen extends ConsumerWidget {
           toolbarHeight: 64,
           leading: Navigator.of(context).canPop()
               ? IconButton(
-                  icon: const Icon(LucideIcons.chevronLeft, size: 22),
+                  icon: const Icon(Icons.chevron_left_rounded, size: 22),
                   tooltip: 'Back',
                   onPressed: () => Navigator.of(context).maybePop(),
                 )
@@ -76,7 +75,7 @@ class LoansScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(22),
               child: const Padding(
                 padding: EdgeInsets.all(17),
-                child: Icon(LucideIcons.plus, color: Colors.white, size: 24),
+                child: Icon(Icons.add_rounded, color: Colors.white, size: 24),
               ),
             ),
           ),
@@ -100,7 +99,7 @@ class LoansScreen extends ConsumerWidget {
               Expanded(
                 child: _buildSummaryCard(
                   context,
-                  icon: LucideIcons.arrowUpRight,
+                  icon: Icons.arrow_outward_rounded,
                   iconColor: AppColors.expense,
                   label: "You're owed",
                   amount: CurrencyFormatter.formatCents(summary.totalLentCents, symbol: currency.symbol),
@@ -112,7 +111,7 @@ class LoansScreen extends ConsumerWidget {
               Expanded(
                 child: _buildSummaryCard(
                   context,
-                  icon: LucideIcons.arrowDownLeft,
+                  icon: Icons.arrow_downward_rounded,
                   iconColor: AppColors.income,
                   label: 'You owe',
                   amount: CurrencyFormatter.formatCents(summary.totalBorrowedCents, symbol: currency.symbol),
@@ -156,14 +155,7 @@ class LoansScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: iconColor),
-              ),
+              Icon(icon, size: 18, color: iconColor),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -236,7 +228,7 @@ class LoansScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.checkCircle, size: 56, color: Colors.grey[400]),
+                Icon(Icons.check_circle_outline_rounded, size: 56, color: Colors.grey[400]),
                 const SizedBox(height: 16),
                 Text(
                   'No settled loans yet',
@@ -280,7 +272,7 @@ class LoansScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.handshake, size: 64, color: Colors.grey[400]),
+          Icon(Icons.handshake_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 20),
           Text(
             'No active dues or debts',
